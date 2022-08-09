@@ -1,0 +1,28 @@
+{
+  "name": "anyday-backend",
+  "version": "1.0.0",
+  "description": "'Backend application'",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start":"nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dennis7456/anyday-backend.git"
+  },
+  "author": "Dennis Kiplangat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Dennis7456/anyday-backend/issues"
+  },
+  "homepage": "https://github.com/Dennis7456/anyday-backend#readme",
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "dotenv": "^16.0.1",
+    "express": "^4.18.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
+  }
+}
