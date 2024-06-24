@@ -6,7 +6,7 @@
   "scripts": {
     "test": "npm test",
     "dev": "ts-node-dev --exit-child app/index.ts",
-    "build":"tsc",
+    "build": "tsc",
     "start": "ts-node app/index.ts",
     "postinstall": "prisma generate"
   },
@@ -51,6 +51,7 @@
     "graphql-helix": "^1.13.0",
     "graphql-import-node": "^0.0.5",
     "jsonwebtoken": "^9.0.2",
-    "ts-node-dev": "^2.0.0"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
   }
 }
