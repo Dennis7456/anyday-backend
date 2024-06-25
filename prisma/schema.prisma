@@ -2,22 +2,121 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-provider = "postgres"
-  url = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  provider  = "postgres"
+  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
   directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
 }
 
 model User {
-  id Int @id @default(autoincrement())
-  firstName String
-  lastName String
-  userName String
-  email String @unique
+  id          Int      @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  userName    String
+  email       String   @unique
   dateOfBirth String
-  password String
+  password    String
+  role        Role
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  orders         Order[]      @relation("UserOrders")
+  qaReviews      Review[]     @relation("QAReviews")
+  writtenReviews Review[]     @relation("WriterReviews")
+  assignments    Assignment[] @relation("WriterAssignments")
+
+  @@map("users")
+}
+
+model Order {
+  id            Int         @id @default(autoincrement())
+  studentId     Int
+  title         String
+  description   String?
+  documentPath  String?
+  instructions  String
+  status        OrderStatus
+  totalAmount   Float
+  depositAmount Float
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  //Relations
+  student     User         @relation("UserOrders", fields: [studentId], references: [id])
+  payment     Payment?
+  reviews     Review[]
+  assignments Assignment[]
+
+  @@map("orders")
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  orderId       Int           @unique
+  amount        Float
+  paymentStatus PaymentStatus
+  transactionId String?
+  paymentDate   DateTime      @default(now())
+
+  // Relations
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  qaId      Int
+  writerId  Int
+  comments  String?
+  rating    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  order  Order @relation(fields: [orderId], references: [id])
+  qa     User  @relation("QAReviews", fields: [qaId], references: [id])
+  writer User  @relation("WriterReviews", fields: [writerId], references: [id])
+
+  @@map("reviews")
+}
+
+model Assignment {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  writerId    Int
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  // Relations
+  order  Order @relation(fields: [orderId], references: [id])
+  writer User  @relation("WriterAssignments", fields: [writerId], references: [id])
+
+  @@map("assignments")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+  WRITER
+  QA
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REVIEWED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
