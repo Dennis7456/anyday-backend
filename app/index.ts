@@ -12,6 +12,7 @@ import {
 } from 'graphql-helix';
 import { schema } from './schema';
 import { contextFactory } from './context';
+import redisClient from './redisClient';
 // import { SpeedInsights } from "@vercel/speed-insights/next"
 
 async function app() {
