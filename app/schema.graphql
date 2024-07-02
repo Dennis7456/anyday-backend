@@ -7,6 +7,9 @@ type Query {
 }
 
 type Mutation {
+  registerAndCreateOrder(input: RegisterOrderInput!): RegisterOrderResponse!
+  verifyEmail(token: String!): VerifyEmailResponse!
+  completeRegistration(input: CompleteRegistrationInput!): User!
   register(
     firstName: String!
     lastName: String!
@@ -35,6 +38,30 @@ type Mutation {
   ): Review!
 
   createAssignment(orderId: Int!, writerId: Int!): Assignment!
+}
+
+input RegisterOrderInput {
+  email: String!
+  paperType: String!
+  pages: Int!
+  dueDate: String!
+}
+
+input CompleteRegistrationInput {
+  token: String!
+  firstName: String!
+  lastName: String!
+  password: String!
+}
+
+type RegisterOrderResponse {
+  success: Boolean!
+  message: String
+}
+
+type VerifyEmailResponse {
+  valid: Boolean!
+  message: String
 }
 
 type User {

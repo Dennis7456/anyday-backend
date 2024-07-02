@@ -5,6 +5,12 @@ import { User, Order, Payment, Review, Assignment, Role, PaymentStatus } from '.
 import { compare, hash } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import { APP_SECRET } from './auth';
+import { v4 as uuidv4 } from 'uuid';
+import redisClient from './redisClient';
+import { emit } from 'process';
+import { sendVerificationEmail } from './mailer';
+
+const REGISTER_EXPIRATION = 3600; // 1 hour expiration
 
 const users: User[] = [
   {
@@ -65,6 +71,78 @@ const resolvers = {
     },
   },
   Mutation: {
+    registerAndCreateOrder: async (
+      _: unknown,
+      // { email, paperType, pages, dueDate
+      { input } : { input: RegisterOrderInput}
+    ) : Promise<RegisterOrderResponse> => {
+
+      const verificationToken = uuidv4();
+
+      //store initial data in redis
+      await redisClient.setEx(
+        verificationToken,
+        REGISTER_EXPIRATION,
+        JSON.stringify({
+            email: input.email,
+            paperType: input.paperType,
+            pages: input.pages,
+            dueDate: input.dueDate
+        })
+      );
+
+      await sendVerificationEmail(input.email, verificationToken);
+
+      return { success: true, message: "Verification Email Sent."};
+    },
+    
+    verifyEmail: async (_: unknown,
+      { token }: { token: string }): Promise<{ valid: boolean; message: string}> => {
+      const cachedData = await redisClient.get(token);
+
+      if (!cachedData) {
+        return { valid: false, message: 'Invalid or expired token.' };
+      }
+
+      // Data is valid, proceed to verification
+      return { valid: true, message: 'Email verified. Please complete your registration.' };
+    },
+
+    completeRegistration: async (
+      _: unknown,
+      { token }: { token: string }
+    ): Promise<{ valid: boolean; message: string}> => {
+
+      // Retrieve and parse cached data
+      const cachedData = await redisClient.get(token);
+
+      if (!cachedData) {
+        throw new Error("Invalid or expired token");
+      }
+
+      // Parse cached data
+      const { email, paperType, pages, dueDate } = JSON.parse(cachedData);
+
+      // Complete user registration
+      // const newUser = await createUser({ email });
+      
+      // Create a new order
+      // const newOrder = await createOrder({
+      //   userId: newUser.id,
+      //   paperType,
+      //   pages,
+      //   dueDate
+      // });
+
+      // Optionally, delete the token from Redis after successful registration
+      await redisClient.del(token);
+
+      return {
+        valid: true,
+        message: "Registration complete and order created."
+      };
+    },
+
     register: async (
       _: unknown,
       { firstName, lastName, userName, email, dateOfBirth, password, role }: {
