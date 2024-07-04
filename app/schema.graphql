@@ -63,6 +63,8 @@ type RegisterOrderResponse {
 type VerifyEmailResponse {
   valid: Boolean!
   message: String
+  redirectUrl: String!
+  token: String!
 }
 
 type User {

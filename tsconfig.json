@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+      "target": "es6", // Adjust target based on your project's requirements
+      "module": "commonjs",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true, // Optional: skip checking of all declaration files (*.d.ts)
+      "forceConsistentCasingInFileNames": true
+    },
+    "include": [
+      "app/**/*.ts", // Adjust this to match your project's source files
+      "fastify-cookie/plugin.d.ts" // Include your custom typings file
+    ]
+  }
+  

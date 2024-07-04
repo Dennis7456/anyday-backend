@@ -33,14 +33,14 @@
     "@graphql-codegen/cli": "^5.0.2",
     "@graphql-codegen/typescript": "^4.0.9",
     "@graphql-codegen/typescript-resolvers": "^4.2.1",
-    "@prisma/client": "^5.5.2",
+    "@prisma/client": "^5.16.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/fastify-cors": "^2.1.0",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.9.0",
     "@types/nodemailer": "^6.4.15",
     "@types/uuid": "^10.0.0",
-    "prisma": "^5.5.2"
+    "prisma": "^5.16.1"
   },
   "dependencies": {
     "@fastify/cors": "^8.4.1",
@@ -54,6 +54,7 @@
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "fastify": "^4.24.3",
+    "fastify-cookie": "^5.7.0",
     "fastify-cors": "^6.1.0",
     "graphql": "^16.8.1",
     "graphql-helix": "^1.13.0",
