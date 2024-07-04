@@ -8,7 +8,8 @@ import { APP_SECRET } from './auth';
 import { v4 as uuidv4 } from 'uuid';
 import redisClient from './redisClient';
 import { emit } from 'process';
-import { sendVerificationEmail } from './mailer';
+import { sendVerificationEmail } from '../sendVerificationEmail';
+import { RegisterOrderInput, RegisterOrderResponse } from './types'
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
 
@@ -74,8 +75,8 @@ const resolvers = {
     registerAndCreateOrder: async (
       _: unknown,
       // { email, paperType, pages, dueDate
-      { input } : { input: RegisterOrderInput}
-    ) : Promise<RegisterOrderResponse> => {
+      { input }: { input: RegisterOrderInput }
+    ): Promise<RegisterOrderResponse> => {
 
       const verificationToken = uuidv4();
 
@@ -84,20 +85,20 @@ const resolvers = {
         verificationToken,
         REGISTER_EXPIRATION,
         JSON.stringify({
-            email: input.email,
-            paperType: input.paperType,
-            pages: input.pages,
-            dueDate: input.dueDate
+          email: input.email,
+          paperType: input.paperType,
+          pages: input.pages,
+          dueDate: input.dueDate
         })
       );
 
       await sendVerificationEmail(input.email, verificationToken);
 
-      return { success: true, message: "Verification Email Sent."};
+      return { success: true, message: "Verification Email Sent.", verificationToken: verificationToken };
     },
-    
+
     verifyEmail: async (_: unknown,
-      { token }: { token: string }): Promise<{ valid: boolean; message: string}> => {
+      { token }: { token: string }): Promise<{ valid: boolean; message: string }> => {
       const cachedData = await redisClient.get(token);
 
       if (!cachedData) {
@@ -111,7 +112,7 @@ const resolvers = {
     completeRegistration: async (
       _: unknown,
       { token }: { token: string }
-    ): Promise<{ valid: boolean; message: string}> => {
+    ): Promise<{ valid: boolean; message: string }> => {
 
       // Retrieve and parse cached data
       const cachedData = await redisClient.get(token);
@@ -125,7 +126,7 @@ const resolvers = {
 
       // Complete user registration
       // const newUser = await createUser({ email });
-      
+
       // Create a new order
       // const newOrder = await createOrder({
       //   userId: newUser.id,

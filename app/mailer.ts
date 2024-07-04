@@ -6,8 +6,8 @@ export const sendVerificationEmail = async (email: string, token: string): Promi
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'your-email@gmail.com',
-      pass: 'your-email-password',
+      user: 'denniskiplangat.dk@gmail.com',
+      pass: '',
     },
   });
 

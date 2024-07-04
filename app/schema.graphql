@@ -57,6 +57,7 @@ input CompleteRegistrationInput {
 type RegisterOrderResponse {
   success: Boolean!
   message: String
+  verificationToken: String
 }
 
 type VerifyEmailResponse {
