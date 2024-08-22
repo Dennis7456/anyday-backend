@@ -27,7 +27,8 @@ async function app() {
     //allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'],
   })
 
-  const port = Number(process.env.PORT) || 8080;
+  // const port = Number(process.env.PORT) || 4000;
+  const port = 8080
 
   server.route({
     method: ['POST', 'GET'],
