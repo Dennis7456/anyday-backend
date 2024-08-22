@@ -18,4 +18,5 @@ const users = [
 ];
 exports.default = {
     getUsers: () => users
+    // addUser: (user) => users.push(user),
 };

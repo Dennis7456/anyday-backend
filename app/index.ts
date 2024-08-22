@@ -27,7 +27,8 @@ async function app() {
     //allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'],
   })
 
-  const port = 4000;
+  // const port = Number(process.env.PORT) || 4000;
+  const port = 8080
 
   server.route({
     method: ['POST', 'GET'],
@@ -101,12 +102,12 @@ async function app() {
     }
   })
 
-  server.listen({ port: port }, (err, address) => {
+  server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
     if (err) {
       console.error(err);
       process.exit(1);
     }
-    console.log(`Server listening at ${address}`);
+    console.log(`Server listening at ${address} on port ${port}`);
   });
 }
 
