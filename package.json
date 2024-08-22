@@ -1,0 +1,57 @@
+{
+  "name": "anyday-essay-node-ts",
+  "version": "1.0.0",
+  "description": "An online essay service",
+  "main": "index.ts",
+  "scripts": {
+    "test": "npm test",
+    "dev": "ts-node-dev --exit-child app/index.ts",
+    "build": "tsc",
+    "start": "node app/index.js",
+    "postinstall": "prisma generate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dennis7456/anyday-essay-node-ts.git"
+  },
+  "keywords": [
+    "nodejs",
+    "typescript",
+    "fastify",
+    "graphqljs",
+    "graphql-helix",
+    "prisma",
+    "graphiql"
+  ],
+  "author": "Dennis Ngetich Kiplangat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Dennis7456/anyday-essay-node-ts/issues"
+  },
+  "homepage": "https://github.com/Dennis7456/anyday-essay-node-ts#readme",
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/fastify-cors": "^2.1.0",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.9.0",
+    "prisma": "^5.18.0"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.4.1",
+    "@graphql-tools/schema": "^10.0.0",
+    "@neondatabase/serverless": "^0.9.3",
+    "@prisma/adapter-neon": "^5.15.0",
+    "@prisma/client": "^5.18.0",
+    "@vercel/postgres": "^0.8.0",
+    "@vercel/speed-insights": "^1.0.11",
+    "bcryptjs": "^2.4.3",
+    "fastify": "^4.24.3",
+    "fastify-cors": "^6.1.0",
+    "graphql": "^16.8.1",
+    "graphql-helix": "^1.13.0",
+    "graphql-import-node": "^0.0.5",
+    "jsonwebtoken": "^9.0.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}
