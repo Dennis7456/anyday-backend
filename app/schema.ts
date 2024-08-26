@@ -8,7 +8,8 @@ import { APP_SECRET } from './auth';
 import { v4 as uuidv4 } from 'uuid';
 import redisClient from './redisClient';
 import { emit } from 'process';
-import { sendVerificationEmail } from '../sendVerificationEmail';
+// import { sendVerificationEmail } from './sendVerificationEmail';
+import { sendVerificationEmail } from './sendVerificationEmail';
 import { RegisterOrderInput, RegisterOrderResponse } from './types'
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
@@ -98,15 +99,16 @@ const resolvers = {
     },
 
     verifyEmail: async (_: unknown,
-      { token }: { token: string }): Promise<{ valid: boolean; message: string; redirectUrl: string; token:string; }> => {
+      { token }: { token: string }): Promise<{ valid: boolean; message: string; redirectUrl: string; token: string; }> => {
       const cachedData = await redisClient.get(token);
 
       if (!cachedData) {
-        return { valid: false, message: 'Invalid or expired token.',  redirectUrl:'#', token:''};
+        return { valid: false, message: 'Invalid or expired token.', redirectUrl: '#', token: '' };
       }
 
       // Data is valid, proceed to verification
-      return { valid: true, message: 'Email verified. Please complete your registration.',  redirectUrl:'http://localhost:3000/complete-registration', token: token };
+      // return { valid: true, message: 'Email verified. Please complete your registration.', redirectUrl: 'http://localhost:3000/complete-registration', token: token };
+      return { valid: true, message: 'Email verified. Please complete your registration.', redirectUrl: 'https://anyday-frontend.web.app/complete-registration', token: token };
     },
 
     completeRegistration: async (

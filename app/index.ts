@@ -37,13 +37,13 @@ async function app() {
 
   // CORS Configuration
   server.register(cors, {
-    origin: ['http://localhost:3000'], // Adjust the origin as needed
+    origin: [process.env.BASE_URL || 'https://anyday-frontend.web.app'],
     methods: ['OPTIONS'],
     credentials: true,
     strictPreflight: false,
   });
 
-  const port = 4000;
+  const port = Number(process.env.PORT) || 8080;
 
   // GraphQL Endpoint
   server.route({
@@ -57,7 +57,7 @@ async function app() {
         body: req.body,
       };
 
-      resp.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+      resp.header('Access-Control-Allow-Origin', process.env.BASE_URL || 'https://anyday-frontend.web.app');
 
       if (shouldRenderGraphiQL(request)) {
         resp.header('Content-Type', 'text/html');
@@ -149,7 +149,7 @@ async function app() {
         const data = result.data as unknown;
 
         if (data && typeof data === 'object' && 'verifyEmail' in data) {
-          const { valid, message, redirectUrl, token} = (data as VerifyEmailResponse).verifyEmail;
+          const { valid, message, redirectUrl, token } = (data as VerifyEmailResponse).verifyEmail;
           if (valid) {
             // Return a JSON response with the redirect URL
             // resp.status(200).send({ redirectUrl });
@@ -198,7 +198,7 @@ async function app() {
   })
 
   //Server listening
-  server.listen({ port: port }, (err, address) => {
+  server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
     if (err) {
       console.error(err);
       process.exit(1);

@@ -1,7 +1,9 @@
 import nodemailer from 'nodemailer';
 
 export const sendVerificationEmail = async (email: string, token: string): Promise<void> => {
-  const verificationLink = `http://localhost:3000/verify-email?token=${token}`;
+  const baseUrl = process.env.BASE_URL || "https://anyday-frontend.web.app"
+
+  const verificationLink = `${baseUrl}/verify-email?token=${token}`;
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',

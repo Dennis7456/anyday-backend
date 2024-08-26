@@ -1,18 +1,18 @@
 {
-  "name": "changa-connect-node-ts",
+  "name": "anyday-essay-node-ts",
   "version": "1.0.0",
-  "description": "A crowd funding platform (back end server)",
+  "description": "An online essay service",
   "main": "index.ts",
   "scripts": {
     "test": "npm test",
     "dev": "ts-node-dev --exit-child app/index.ts",
     "build": "tsc",
-    "start": "ts-node app/index.ts",
+    "start": "node dist/index.js",
     "postinstall": "prisma generate"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Dennis7456/changa-connect-node-ts.git"
+    "url": "https://github.com/Dennis7456/anyday-essay-node-ts.git"
   },
   "keywords": [
     "nodejs",
@@ -26,43 +26,39 @@
   "author": "Dennis Ngetich Kiplangat",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Dennis7456/changa-connect-node-ts/issues"
+    "url": "https://github.com/Dennis7456/anyday-essay-node-ts/issues"
   },
-  "homepage": "https://github.com/Dennis7456/changa-connect-node-ts#readme",
+  "homepage": "https://github.com/Dennis7456/anyday-essay-node-ts#readme",
   "devDependencies": {
-    "@graphql-codegen/cli": "^5.0.2",
-    "@graphql-codegen/typescript": "^4.0.9",
-    "@graphql-codegen/typescript-resolvers": "^4.2.1",
-    "@prisma/client": "^5.16.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/fastify-cors": "^2.1.0",
-    "@types/jsonwebtoken": "^9.0.5",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/mailgun-js": "^0.22.18",
     "@types/node": "^20.9.0",
     "@types/nodemailer": "^6.4.15",
+    "@types/redis": "^4.0.11",
     "@types/uuid": "^10.0.0",
-    "prisma": "^5.16.1"
+    "prisma": "^5.18.0"
   },
   "dependencies": {
     "@fastify/cors": "^8.4.1",
-    "@graphql-tools/schema": "^10.0.0",
+    "@graphql-tools/schema": "^10.0.6",
     "@neondatabase/serverless": "^0.9.3",
     "@prisma/adapter-neon": "^5.15.0",
-    "@types/mailgun-js": "^0.22.18",
-    "@types/redis": "^4.0.11",
+    "@prisma/client": "^5.18.0",
     "@vercel/postgres": "^0.8.0",
     "@vercel/speed-insights": "^1.0.11",
     "bcryptjs": "^2.4.3",
-    "dotenv": "^16.4.5",
     "fastify": "^4.24.3",
-    "fastify-cookie": "^5.7.0",
     "fastify-cors": "^6.1.0",
     "graphql": "^16.8.1",
     "graphql-helix": "^1.13.0",
     "graphql-import-node": "^0.0.5",
     "jsonwebtoken": "^9.0.2",
     "mailgun-js": "^0.22.0",
+    "node-mailjet": "^6.0.5",
     "nodemailer": "^6.9.14",
-    "redis": "^4.6.14",
+    "redis": "^4.7.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5",
     "uuid": "^10.0.0"
