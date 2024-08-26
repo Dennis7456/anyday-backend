@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const redis_1 = require("redis");
-const redisHost = process.env.REDISHOST || 'localhost';
-const redisPort = process.env.REDISPORT || '6379';
+const redisHost = process.env.REDISHOST;
+const redisPort = process.env.REDISPORT;
 const redisClient = (0, redis_1.createClient)({
     url: `redis://${redisHost}:${redisPort}`
 });

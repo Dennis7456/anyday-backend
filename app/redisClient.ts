@@ -1,7 +1,7 @@
 import { createClient, RedisClientType } from 'redis';
 
-const redisHost = process.env.REDISHOST || 'localhost';
-const redisPort = process.env.REDISPORT || '6379';
+const redisHost = process.env.REDISHOST;
+const redisPort = process.env.REDISPORT;
 
 const redisClient: RedisClientType = createClient({
     url: `redis://${redisHost}:${redisPort}`
