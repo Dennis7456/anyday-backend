@@ -2,6 +2,7 @@ type Query {
   users: [User!]!
   user(id: Int!): User
   loggedInUser: User!
+
 }
 
 type Mutation {
@@ -33,3 +34,5 @@ type User {
   dateOfBirth: String!
   password: String!
 }
+
+

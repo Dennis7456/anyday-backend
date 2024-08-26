@@ -12,4 +12,8 @@
   },
   "include": ["app/**/*.ts", "types/**/*.d.ts", "schema.graphql"], // Include all TypeScript files in the app and types directories
   "exclude": ["node_modules", "dist"] // Exclude node_modules and dist directories
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> order-management

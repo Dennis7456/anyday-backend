@@ -1,11 +1,23 @@
 type Query {
   users: [User!]!
   user(id: Int!): User
+<<<<<<< HEAD
   loggedInUser: User!
 }
 
 type Mutation {
   login(email: String!, password: String!): AuthPayload
+=======
+  loggedInUser: User
+  orders: [Order!]!
+  order(id: Int!): Order
+}
+
+type Mutation {
+  registerAndCreateOrder(input: RegisterOrderInput!): RegisterOrderResponse!
+  verifyEmail(token: String!): VerifyEmailResponse!
+  completeRegistration(input: CompleteRegistrationInput!): User!
+>>>>>>> order-management
   register(
     firstName: String!
     lastName: String!
@@ -13,6 +25,7 @@ type Mutation {
     email: String!
     dateOfBirth: String!
     password: String!
+<<<<<<< HEAD
   ): AuthPayload
 }
 
@@ -27,10 +40,150 @@ type ID {
 
 type User {
   id: ID!
+=======
+    role: Role!
+  ): AuthPayload!
+
+  login(email: String!, password: String!): AuthPayload!
+
+  createPayment(
+    orderId: Int!
+    amount: Float!
+    paymentStatus: PaymentStatus!
+    transactionId: String
+  ): Payment!
+
+  createReview(
+    orderId: Int!
+    qaId: Int!
+    writerId: Int!
+    comments: String
+    rating: Int!
+  ): Review!
+
+  createAssignment(orderId: Int!, writerId: Int!): Assignment!
+}
+
+input RegisterOrderInput {
+  email: String!
+  paperType: String!
+  pages: Int!
+  dueDate: String!
+}
+
+input CompleteRegistrationInput {
+  token: String!
+  firstName: String!
+  lastName: String!
+  password: String!
+}
+
+type RegisterOrderResponse {
+  success: Boolean!
+  message: String
+  verificationToken: String
+}
+
+type VerifyEmailResponse {
+  valid: Boolean!
+  message: String
+  redirectUrl: String!
+  token: String!
+}
+
+type User {
+  id: Int!
+>>>>>>> order-management
   firstName: String!
   lastName: String!
   userName: String!
   email: String!
   dateOfBirth: String!
+<<<<<<< HEAD
   password: String!
+=======
+  role: Role!
+  createdAt: String!
+  updatedAt: String!
+  orders: [Order!]!
+  qaReviews: [Review!]!
+  writtenReviews: [Review!]!
+  assignments: [Assignment!]!
+}
+
+type Order {
+  id: Int!
+  student: User!
+  title: String!
+  description: String
+  documentPath: String
+  instructions: String!
+  status: OrderStatus!
+  totalAmount: Float!
+  depositAmount: Float!
+  createdAt: String!
+  updatedAt: String!
+  payment: Payment
+  reviews: [Review!]!
+  assignments: [Assignment!]!
+}
+
+type Payment {
+  id: Int!
+  orderId: Int!
+  amount: Float!
+  paymentStatus: PaymentStatus!
+  transactionId: String
+  paymentDate: String!
+
+  order: Order!
+}
+
+type Review {
+  id: Int!
+  orderId: Int!
+  qa: User!
+  writer: User!
+  comments: String
+  rating: Int!
+  createdAt: String!
+  updatedAt: String!
+
+  order: Order!
+}
+
+type Assignment {
+  id: Int!
+  orderId: Int!
+  writer: User!
+  assignedAt: String!
+  completedAt: String
+
+  order: Order!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+  WRITER
+  QA
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REVIEWED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+>>>>>>> order-management
 }
