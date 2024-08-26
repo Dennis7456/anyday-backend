@@ -37,8 +37,5 @@ COPY --from=build /usr/src/app /usr/src/app
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run database migrations (Optional: Can be done in entrypoint script or Docker Compose)
-CMD ["npx", "prisma", "migrate", "deploy"]
-
-# Start the application
-CMD ["npm", "start"]
+# Run database migrations and start the application in one command
+ENTRYPOINT ["sh", "-c", "npx prisma migrate deploy && npm start"]
