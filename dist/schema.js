@@ -73,9 +73,9 @@ const resolvers = {
         },
     },
     Mutation: {
-        registerAndCreateOrder: async (_,
-            // { email, paperType, pages, dueDate
-            { input }) => {
+        registerAndCreateOrder: async (_, 
+        // { email, paperType, pages, dueDate
+        { input }) => {
             const verificationToken = (0, uuid_1.v4)();
             //store initial data in redis
             await redisClient_1.default.setEx(verificationToken, REGISTER_EXPIRATION, JSON.stringify({
@@ -144,12 +144,10 @@ const resolvers = {
         login: async (_, { email, password }, context) => {
             const user = await context.prisma.user.findUnique({
                 where: { email },
-
             });
             if (!user) {
                 throw new Error('User does not exist');
             }
-
             const isValid = await (0, bcryptjs_1.compare)(password, user.password);
             if (!isValid) {
                 throw new Error('Incorrect password');

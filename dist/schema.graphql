@@ -1,13 +1,6 @@
 type Query {
   users: [User!]!
   user(id: Int!): User
-<<<<<<< HEAD
-  loggedInUser: User!
-}
-
-type Mutation {
-  login(email: String!, password: String!): AuthPayload
-=======
   loggedInUser: User
   orders: [Order!]!
   order(id: Int!): Order
@@ -17,7 +10,6 @@ type Mutation {
   registerAndCreateOrder(input: RegisterOrderInput!): RegisterOrderResponse!
   verifyEmail(token: String!): VerifyEmailResponse!
   completeRegistration(input: CompleteRegistrationInput!): User!
->>>>>>> order-management
   register(
     firstName: String!
     lastName: String!
@@ -25,22 +17,6 @@ type Mutation {
     email: String!
     dateOfBirth: String!
     password: String!
-<<<<<<< HEAD
-  ): AuthPayload
-}
-
-type AuthPayload {
-  token: String
-  user: User
-}
-
-type ID {
-  id: Int!
-}
-
-type User {
-  id: ID!
-=======
     role: Role!
   ): AuthPayload!
 
@@ -93,15 +69,11 @@ type VerifyEmailResponse {
 
 type User {
   id: Int!
->>>>>>> order-management
   firstName: String!
   lastName: String!
   userName: String!
   email: String!
   dateOfBirth: String!
-<<<<<<< HEAD
-  password: String!
-=======
   role: Role!
   createdAt: String!
   updatedAt: String!
@@ -185,5 +157,4 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
->>>>>>> order-management
 }
