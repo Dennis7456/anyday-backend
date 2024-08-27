@@ -19,11 +19,16 @@ async function app() {
     // CORS Configuration
     server.register(cors_1.default, {
         origin: [process.env.BASE_URL || 'https://anyday-frontend.web.app'],
-        methods: ['GET', 'PUT', 'OPTIONS'],
+        methods: ['GET', 'POST', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
-        strictPreflight: false,
+        strictPreflight: true,
     });
     const port = Number(process.env.PORT) || 8080;
+    // Handle preflight requests
+    server.options('*', (req, reply) => {
+        reply.status(204).send();
+    });
     // GraphQL Endpoint
     server.route({
         method: ['POST', 'GET'],
