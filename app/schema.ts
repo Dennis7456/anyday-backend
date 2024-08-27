@@ -13,6 +13,7 @@ import { sendVerificationEmail } from './sendVerificationEmail';
 import { RegisterOrderInput, RegisterOrderResponse } from './types'
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
+const baseUrl = process.env.BASE_URL || "https://anyday-frontend.web.app"
 
 const users: User[] = [
   {
@@ -107,8 +108,7 @@ const resolvers = {
       }
 
       // Data is valid, proceed to verification
-      // return { valid: true, message: 'Email verified. Please complete your registration.', redirectUrl: 'http://localhost:3000/complete-registration', token: token };
-      return { valid: true, message: 'Email verified. Please complete your registration.', redirectUrl: 'https://anyday-frontend.web.app/complete-registration', token: token };
+      return { valid: true, message: 'Email verified. Please complete your registration.', redirectUrl: `${baseUrl}/complete-registration`, token: token };
     },
 
     completeRegistration: async (
