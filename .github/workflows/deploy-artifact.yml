@@ -30,13 +30,13 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repo/my-image:${{ github.sha }} .
-          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repo/my-image:${{ github.sha }}
+          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/anyday-backend-app:${{ github.sha }} .
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/anyday-backend-app:${{ github.sha }}
 
       - name: Deploy to Google Cloud Run
         run: |
-          gcloud run deploy my-service \
-            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repo/my-image:${{ github.sha }} \
+          gcloud run deploy anyday-backend-app \
+            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/anyday-backend-app:${{ github.sha }} \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated
