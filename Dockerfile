@@ -24,6 +24,7 @@ RUN npm prune --production
 
 # Build the application if there's a build step (e.g., for TypeScript or Webpack)
 RUN npm run build
+# RUN npx tsc
 
 # Step 2: Production Stage
 FROM node:16-alpine AS production

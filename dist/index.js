@@ -26,9 +26,9 @@ async function app() {
     });
     const port = Number(process.env.PORT) || 8080;
     // Handle preflight requests
-    server.options('*', (req, reply) => {
-        reply.status(204).send();
-    });
+    // server.options('*', (req, reply) => {
+    //   reply.status(204).send();
+    // });
     // GraphQL Endpoint
     server.route({
         method: ['POST', 'GET'],
