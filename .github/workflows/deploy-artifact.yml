@@ -28,12 +28,6 @@ jobs:
         with:
           version: latest
 
-      - name: Authenticate Docker to Google Artifact Registry
-        run: |
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > key.json
-          gcloud auth activate-service-account --key-file=key.json
-          gcloud auth configure-docker us-central1-docker.pkg.dev
-
       - name: Build and push Docker image
         run: |
           docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repo/my-image:${{ github.sha }} .
