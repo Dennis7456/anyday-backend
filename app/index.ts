@@ -41,7 +41,7 @@ async function app() {
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-    strictPreflight: true,
+    // strictPreflight: true,
   });
 
   const port = Number(process.env.PORT) || 8080;
@@ -63,7 +63,14 @@ async function app() {
         body: req.body,
       };
 
-      resp.header('Access-Control-Allow-Origin', process.env.BASE_URL || 'https://anyday-frontend.web.app');
+      // resp.header('Access-Control-Allow-Origin', process.env.BASE_URL || 'https://anyday-frontend.web.app');
+
+      console.log('GraphQL Request:', {
+        headers: request.headers,
+        method: request.method,
+        query: request.query,
+        body: request.body,
+      });
 
       if (shouldRenderGraphiQL(request)) {
         resp.header('Content-Type', 'text/html');
@@ -93,8 +100,10 @@ async function app() {
         resp.status(result.status);
         resp.serialize(result.payload);
         resp.send(result.payload);
+        console.log(resp);
       } else {
         sendResult(result, resp.raw);
+        console.log(result, resp.raw)
       }
     },
   });
@@ -209,7 +218,7 @@ async function app() {
       console.error(err);
       process.exit(1);
     }
-    console.log(`Server listening at ${address} on port ${port}`);
+    console.log(`Server listening at ${address}`);
   });
 }
 

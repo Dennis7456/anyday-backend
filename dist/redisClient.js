@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const redis_1 = require("redis");
-const redisHost = process.env.REDIS_HOST;
-const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10); // Ensure it's a number
+const redisHost = process.env.REDISHOST;
+const redisPort = parseInt(process.env.REDISPORT || '6379', 10); // Ensure it's a number
 if (!redisHost || !redisPort) {
     throw new Error("REDISHOST or REDISPORT environment variables are not set");
 }
