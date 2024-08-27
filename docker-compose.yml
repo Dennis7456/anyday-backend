@@ -1,13 +1,26 @@
 version: '3.8'
 services:
   backend:
-    image: anyday-backend-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # image: anyday-backend-app:latest
     restart: always
     environment:
+      - POSTGRES_PRISMA_URL=${POSTGRES_PRISMA_URL}
+      - POSTGRES_URL_NON_POOLING=${POSTGRES_URL_NON_POOLING}
+      - MAILJET_API_KEY=${MAILJET_API_KEY}
+      - MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}
+      - MAILJET_FROM=${MAILJET_FROM}
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
+      - REDISHOST=${REDISHOST}
+      - REDISPORT=${REDISPORT}
+      - BASE_URL=${BASE_URL}
+      - BACKEND_URL=${BACKEND_URL}
+      - PORT=${PORT}
     ports:
-      - '4000:8080'
+      - '8080:8080'
     depends_on:
       - db
       - redis
@@ -27,6 +40,9 @@ services:
     restart: always
     volumes:
       - redis-data:/data
+    environment:
+      REDIS_HOST: ${REDISHOST}
+      REDIS_PORT: ${REDISPORT}
 
 volumes:
   db-data:

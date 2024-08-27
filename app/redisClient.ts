@@ -1,7 +1,11 @@
 import { createClient, RedisClientType } from 'redis';
 
 const redisHost = process.env.REDISHOST;
-const redisPort = process.env.REDISPORT;
+const redisPort = parseInt(process.env.REDISPORT || '6379', 10); // Ensure it's a number
+
+if (!redisHost || !redisPort) {
+    throw new Error("REDISHOST or REDISPORT environment variables are not set");
+}
 
 const redisClient: RedisClientType = createClient({
     url: `redis://${redisHost}:${redisPort}`
