@@ -15,6 +15,7 @@ const redisClient_1 = __importDefault(require("./redisClient"));
 // import { sendVerificationEmail } from './sendVerificationEmail';
 const sendVerificationEmail_1 = require("./sendVerificationEmail");
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
+const baseUrl = process.env.BASE_URL || "https://anyday-frontend.web.app";
 const users = [
     {
         id: 1,
@@ -93,8 +94,7 @@ const resolvers = {
                 return { valid: false, message: 'Invalid or expired token.', redirectUrl: '#', token: '' };
             }
             // Data is valid, proceed to verification
-            // return { valid: true, message: 'Email verified. Please complete your registration.', redirectUrl: 'http://localhost:3000/complete-registration', token: token };
-            return { valid: true, message: 'Email verified. Please complete your registration.', redirectUrl: 'https://anyday-frontend.web.app/complete-registration', token: token };
+            return { valid: true, message: 'Email verified. Please complete your registration.', redirectUrl: `${baseUrl}/complete-registration`, token: token };
         },
         completeRegistration: async (_, { token }) => {
             // Retrieve and parse cached data

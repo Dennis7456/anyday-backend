@@ -8,7 +8,7 @@ const node_mailjet_1 = __importDefault(require("node-mailjet"));
 // Initialize Mailjet client with your API keys
 const mailjet = node_mailjet_1.default.apiConnect(process.env.MAILJET_API_KEY, process.env.MAILJET_SECRET_KEY);
 const sendVerificationEmail = async (to, verificationToken) => {
-    const backEndUrl = process.env.BACKEND_URL ? process.env.BACKEND_URL : 'https://anyday-frontend.web.app';
+    const backEndUrl = process.env.BACKEND_URL ? process.env.BACKEND_URL : 'https://anyday-backend-app-hufozn77kq-uc.a.run.app';
     const verificationLink = `${backEndUrl}/verify-email?token=${verificationToken}`;
     const data = {
         Messages: [

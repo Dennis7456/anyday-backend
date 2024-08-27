@@ -38,7 +38,7 @@ async function app() {
   // CORS Configuration
   server.register(cors, {
     origin: [process.env.BASE_URL || 'https://anyday-frontend.web.app'],
-    methods: ['OPTIONS'],
+    methods: ['GET', 'PUT', 'OPTIONS'],
     credentials: true,
     strictPreflight: false,
   });
