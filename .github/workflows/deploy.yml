@@ -40,7 +40,7 @@ jobs:
 
     - name: Bronze 1
       run: |
-        gcloud auth configure-docker us-central1-docker.pkg.dev
+        gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
 
     - name: Push Docker image to Google Container Registry
       run: |
