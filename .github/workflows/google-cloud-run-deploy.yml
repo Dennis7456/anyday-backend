@@ -8,54 +8,13 @@ on:
       - '**/Dockerfile'
       - '**/app/**'
       - '.github/workflows/**'
-      - 'prisma/**'  # Prisma schema files
+      - 'prisma/**'
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Google Cloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-          project_id: anydayessay
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/docker
-            /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-docker-
-
-      - name: Build Docker image
-        run: |
-          docker buildx build --platform linux/amd64 -t gcr.io/anydayessay/anyday-backend-app:latest --push .
-
+      
       - name: Authenticate Docker with Google Cloud
-        run: |
-          gcloud auth configure-docker
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy anyday-backend-app \
-            --image gcr.io/anydayessay/anyday-backend-app:latest \
-            --platform managed \
-            --region us-central1 \
-            --allow-unauthenticated
-
-      - name: Run Prisma Migrations
-        run: |
-          docker run --rm \
-            -e DATABASE_URL=${{ secrets.DATABASE_URL }} \
-            -v $(pwd)/prisma:/app/prisma \
-            gcr.io/anydayessay/anyday-backend-app:latest \
-            npx prisma migrate deploy
+        run: gcloud auth configure-docker
