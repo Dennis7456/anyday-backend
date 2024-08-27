@@ -38,10 +38,6 @@ jobs:
       run: |
         docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/anyday-backend-app:latest .
 
-    - name: Bronze 1
-      run: |
-        gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
-
     - name: Push Docker image to Google Container Registry
       run: |
         docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/anyday-backend-app:latest
