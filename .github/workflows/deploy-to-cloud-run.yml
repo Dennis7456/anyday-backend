@@ -26,13 +26,9 @@ jobs:
         run: |
           gcloud auth configure-docker
 
-      - name: Build Docker image
+      - name: Build Docker image and Push to Google Container Registry
         run: |
-          docker buildx build --platform linux/amd64 -t gcr.io/${{ secrets.GCP_PROJECT }}/anyday-backend-app:latest .
-
-      - name: Push Docker image to Google Container Registry
-        run: |
-          docker push gcr.io/${{ secrets.GCP_PROJECT }}/anyday-backend-app:latest
+          docker buildx build --platform linux/amd64 -t gcr.io/${{ secrets.GCP_PROJECT }}/anyday-backend-app:latest --push .
 
       - name: Deploy to Google Cloud Run
         run: |
