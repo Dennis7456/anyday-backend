@@ -39,7 +39,6 @@
     "@types/pg": "^8.11.6",
     "@types/redis": "^4.0.11",
     "@types/uuid": "^10.0.0",
-    "graphql-import-node": "^0.0.5",
     "prisma": "^5.18.0"
   },
   "dependencies": {
@@ -50,12 +49,12 @@
     "@prisma/client": "^5.18.0",
     "@vercel/postgres": "^0.8.0",
     "@vercel/speed-insights": "^1.0.11",
-    "graphql-import-node": "^0.0.5",
     "bcryptjs": "^2.4.3",
     "fastify": "^4.24.3",
     "fastify-cors": "^6.1.0",
     "graphql": "^16.8.1",
     "graphql-helix": "^1.13.0",
+    "graphql-import-node": "^0.0.5",
     "jsonwebtoken": "^9.0.2",
     "mailgun-js": "^0.22.0",
     "node-mailjet": "^6.0.5",
