@@ -28,12 +28,12 @@ jobs:
 
       - name: Build Docker image and Push to Google Container Registry
         run: |
-          docker buildx build --platform linux/amd64 -t gcr.io/${{ secrets.GCP_PROJECT }}/anyday-backend-app:latest --push .
+          docker buildx build --platform linux/amd64 -t gcr.io/anydayessay/anyday-backend-app:latest --push .
 
       - name: Deploy to Google Cloud Run
         run: |
           gcloud run deploy anyday-backend-app \
-            --image gcr.io/${{ secrets.GCP_PROJECT }}/anyday-backend-app:latest \
+            --image gcr.io/anydayessay/anyday-backend-app:latest \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated
