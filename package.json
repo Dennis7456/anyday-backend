@@ -7,7 +7,7 @@
     "test": "npm test",
     "dev": "ts-node-dev --exit-child app/index.ts",
     "build": "tsc",
-    "start": "node index.js",
+    "start": "node dist/index.js",
     "postinstall": "prisma generate"
   },
   "repository": {
