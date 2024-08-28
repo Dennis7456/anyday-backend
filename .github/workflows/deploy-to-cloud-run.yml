@@ -28,7 +28,7 @@ jobs:
 
       - name: Build Docker image and Push to Google Container Registry
         run: |
-          docker buildx build --platform linux/amd64 -t gcr.io/anydayessay/anyday-backend-app:latest --push .
+          docker build -t gcr.io/anydayessay/anyday-backend-app:latest --push .
 
       - name: Deploy to Google Cloud Run
         run: |
