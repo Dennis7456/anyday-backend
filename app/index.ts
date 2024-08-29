@@ -1,5 +1,8 @@
 import 'graphql-import-node';
-import fastify from 'fastify';
+import multer from 'multer';
+import fastify, { FastifyReply, FastifyRequest } from 'fastify';
+import { Storage } from '@google-cloud/storage';
+import FastifyMultipart from '@fastify/multipart';
 // import cookiePlugin from 'fastify-cookie';
 import cors from '@fastify/cors';
 import {
@@ -29,8 +32,19 @@ interface VerifyEmailResponse {
   };
 }
 
+// Initialize Google Cloud Storage
+const storage = new Storage();
+const bucket = storage.bucket('anyday_essay_bucket');
+
+// Multer setup for handling file uploads
+const upload = multer({
+  storage: multer.memoryStorage(), // Store file in memory
+});
+
 async function app() {
   const server = fastify({ logger: true });
+
+  server.register(FastifyMultipart);
 
   //Register fastify-cookie plugin
   // server.register(cookiePlugin as any);
@@ -65,12 +79,12 @@ async function app() {
 
       // resp.header('Access-Control-Allow-Origin', process.env.BASE_URL || 'https://anyday-frontend.web.app');
 
-      console.log('GraphQL Request:', {
-        headers: request.headers,
-        method: request.method,
-        query: request.query,
-        body: request.body,
-      });
+      // console.log('GraphQL Request:', {
+      //   headers: request.headers,
+      //   method: request.method,
+      //   query: request.query,
+      //   body: request.body,
+      // });
 
       if (shouldRenderGraphiQL(request)) {
         resp.header('Content-Type', 'text/html');
@@ -100,10 +114,10 @@ async function app() {
         resp.status(result.status);
         resp.serialize(result.payload);
         resp.send(result.payload);
-        console.log(resp);
+        // console.log(resp);
       } else {
         sendResult(result, resp.raw);
-        console.log(result, resp.raw)
+        // console.log(result, resp.raw)
       }
     },
   });
@@ -211,6 +225,77 @@ async function app() {
       }
     }
   })
+
+  // File Upload Endpoint
+  server.post('/api/upload/file', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await req.file();
+
+      if (!data) {
+        return reply.status(400).send('No file uploaded.');
+      }
+
+      const { filename, file } = data;
+      const mimetype = data.mimetype || 'application/octet-stream';
+
+      // Log the file details
+      console.log(`Uploading file: ${filename}`);
+      console.log(`File type: ${mimetype}`);
+
+      // Create a file object in the bucket
+      const blob = bucket.file(filename);
+
+      // Create a write stream to upload the file
+      const blobStream = blob.createWriteStream({
+        resumable: false,
+      });
+
+      blobStream.on('error', (err) => {
+        console.error('Error uploading file:', err);
+        // Ensure reply is sent only once
+        if (!reply.sent) {
+          reply.status(500).send({ message: err.message });
+        }
+      });
+
+      blobStream.on('finish', () => {
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+        console.log(`File uploaded successfully: ${publicUrl}`);
+        if (!reply.sent) {
+          reply.status(200).send({ url: publicUrl });
+        }
+      });
+
+      // Pipe the file stream directly to the Google Cloud Storage stream
+      file.pipe(blobStream);
+
+    } catch (error) {
+      console.error('File upload error:', error);
+      // Ensure reply is sent only once
+      if (!reply.sent) {
+        reply.status(500).send({ message: 'Internal Server Error' });
+      }
+    }
+  });
+
+  // List Files Endpoint
+  server.get('/api/files', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const [files] = await bucket.getFiles(); // List all files
+
+      const fileUrls = files.map(file => {
+        return {
+          filename: file.name,
+          url: `https://storage.googleapis.com/${bucket.name}/${file.name}`
+        };
+      });
+
+      reply.status(200).send(fileUrls);
+    } catch (error) {
+      console.error('Error listing files:', error);
+      reply.status(500).send({ message: 'Internal Server Error' });
+    }
+  });
 
   //Server listening
   server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {

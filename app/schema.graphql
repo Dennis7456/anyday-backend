@@ -16,6 +16,7 @@ type Mutation {
     userName: String!
     email: String!
     dateOfBirth: String!
+    phoneNumber: String!
     password: String!
     role: Role!
   ): AuthPayload!
@@ -74,6 +75,7 @@ type User {
   userName: String!
   email: String!
   dateOfBirth: String!
+  phoneNumber: String!
   role: Role!
   createdAt: String!
   updatedAt: String!
