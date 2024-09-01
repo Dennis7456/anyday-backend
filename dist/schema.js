@@ -23,6 +23,7 @@ const users = [
         lastName: 'Doe',
         userName: 'johndoe23',
         email: 'johndoe23@mail.com',
+        phoneNumber: '+5138888888',
         dateOfBirth: '1987-03-13',
         password: 'password',
         role: client_1.Role.STUDENT,
@@ -35,6 +36,7 @@ const users = [
         lastName: 'Doe',
         userName: 'janedoe23',
         email: 'janedoe23@mail.com',
+        phoneNumber: '+5138888888',
         dateOfBirth: '1997-05-10',
         password: 'password',
         role: client_1.Role.STUDENT,
@@ -120,27 +122,83 @@ const resolvers = {
                 message: "Registration complete and order created."
             };
         },
-        register: async (_, { firstName, lastName, userName, email, dateOfBirth, password, role }, context) => {
+        createStudent: async (_, { input }, context) => {
+            const { firstName, lastName, email, phoneNumber, dateOfBirth, password } = input;
+            // Validate input fields
+            if (!firstName || !lastName || !email || !phoneNumber || !dateOfBirth || !password) {
+                throw new Error("All fields are required.");
+                console.log("error");
+            }
+            // if (!isEmail(email)) {
+            //   throw new Error("Invalid email address.");
+            // }
+            // // Password strength check (example, customize as needed)
+            // if (password.length < 8) {
+            //   throw new Error("Password must be at least 8 characters long.");
+            // }
+            // // Date format check (example, customize as needed)
+            // if (isNaN(Date.parse(dateOfBirth))) {
+            //   throw new Error("Invalid date of birth.");
+            // }
+            // Generate a unique username (e.g., using a combination of first name, last name, and a random number)
+            const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(Math.random() * 10000)}`;
             const hashedPassword = await (0, bcryptjs_1.hash)(password, 10);
-            const user = await context.prisma.user.create({
-                data: {
-                    firstName,
-                    lastName,
-                    userName,
-                    email,
-                    dateOfBirth,
-                    password: hashedPassword,
-                    role,
-                    createdAt: new Date(), // Ensure proper date format
-                    updatedAt: new Date(), // Ensure proper date format
-                },
-            });
-            const token = (0, jsonwebtoken_1.sign)({ userId: user.id }, auth_1.APP_SECRET);
-            return {
-                token,
-                user,
-            };
+            try {
+                const student = await context.prisma.user.create({
+                    data: {
+                        firstName,
+                        lastName,
+                        userName,
+                        email,
+                        phoneNumber,
+                        dateOfBirth,
+                        password: hashedPassword,
+                        role: "STUDENT",
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }
+                });
+                return student;
+            }
+            catch (error) {
+                console.error("Database error:", error);
+                throw new Error("An error occurred while creating the student.");
+            }
         },
+        // register: async (
+        //   _: unknown,
+        //   { firstName, lastName, userName, email, dateOfBirth, password, role }: {
+        //     firstName: string;
+        //     lastName: string;
+        //     userName: string;
+        //     email: string;
+        //     phoneNumber: string
+        //     dateOfBirth: string;
+        //     password: string;
+        //     role: Role;
+        //   },
+        //   context: GraphQLContext
+        // ) => {
+        //   const hashedPassword = await hash(password, 10);
+        //   const user = await context.prisma.user.create({
+        //     data: {
+        //       firstName,
+        //       lastName,
+        //       userName,
+        //       email,
+        //       dateOfBirth,
+        //       password: hashedPassword,
+        //       role,
+        //       createdAt: new Date(), // Ensure proper date format
+        //       updatedAt: new Date(), // Ensure proper date format
+        //     },
+        //   });
+        //   const token = sign({ userId: user.id }, APP_SECRET);
+        //   return {
+        //     token,
+        //     user,
+        //   };
+        // },
         login: async (_, { email, password }, context) => {
             const user = await context.prisma.user.findUnique({
                 where: { email },

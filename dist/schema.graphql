@@ -16,9 +16,15 @@ type Mutation {
     userName: String!
     email: String!
     dateOfBirth: String!
+    phoneNumber: String!
     password: String!
     role: Role!
   ): AuthPayload!
+  createStudent(input: CreateStudentInput!): User!
+
+  createOrder(input: CreateOrderInput!): Order!
+
+  attachFiles(input: AttachFilesInput!): Order!
 
   login(email: String!, password: String!): AuthPayload!
 
@@ -38,6 +44,7 @@ type Mutation {
   ): Review!
 
   createAssignment(orderId: Int!, writerId: Int!): Assignment!
+  
 }
 
 input RegisterOrderInput {
@@ -52,6 +59,28 @@ input CompleteRegistrationInput {
   firstName: String!
   lastName: String!
   password: String!
+}
+
+input CreateStudentInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  dateOfBirth: String!
+  phoneNumber: String!
+  password: String!
+  }
+
+input CreateOrderInput {
+  studentId: Int!
+  instructions: String!
+  paperType: String!
+  numberOfPages: Int!
+  dueDate: String!
+  attachments: String!
+  }
+input AttachFilesInput {
+  orderId: Int!
+  fileUrls: [String!]!
 }
 
 type RegisterOrderResponse {
@@ -74,6 +103,7 @@ type User {
   userName: String!
   email: String!
   dateOfBirth: String!
+  phoneNumber: String!
   role: Role!
   createdAt: String!
   updatedAt: String!
@@ -81,6 +111,7 @@ type User {
   qaReviews: [Review!]!
   writtenReviews: [Review!]!
   assignments: [Assignment!]!
+  password: String!
 }
 
 type Order {

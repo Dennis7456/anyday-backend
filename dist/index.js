@@ -4,7 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("graphql-import-node");
+const multer_1 = __importDefault(require("multer"));
 const fastify_1 = __importDefault(require("fastify"));
+const storage_1 = require("@google-cloud/storage");
+const multipart_1 = __importDefault(require("@fastify/multipart"));
 // import cookiePlugin from 'fastify-cookie';
 const cors_1 = __importDefault(require("@fastify/cors"));
 const graphql_helix_1 = require("graphql-helix");
@@ -12,8 +15,16 @@ const graphql_1 = require("graphql");
 const schema_1 = require("./schema");
 const context_1 = require("./context");
 const redisClient_1 = __importDefault(require("./redisClient"));
+// Initialize Google Cloud Storage
+const storage = new storage_1.Storage();
+const bucket = storage.bucket('anyday_essay_bucket');
+// Multer setup for handling file uploads
+const upload = (0, multer_1.default)({
+    storage: multer_1.default.memoryStorage(), // Store file in memory
+});
 async function app() {
     const server = (0, fastify_1.default)({ logger: true });
+    server.register(multipart_1.default);
     //Register fastify-cookie plugin
     // server.register(cookiePlugin as any);
     // CORS Configuration
@@ -41,12 +52,12 @@ async function app() {
                 body: req.body,
             };
             // resp.header('Access-Control-Allow-Origin', process.env.BASE_URL || 'https://anyday-frontend.web.app');
-            console.log('GraphQL Request:', {
-                headers: request.headers,
-                method: request.method,
-                query: request.query,
-                body: request.body,
-            });
+            // console.log('GraphQL Request:', {
+            //   headers: request.headers,
+            //   method: request.method,
+            //   query: request.query,
+            //   body: request.body,
+            // });
             if ((0, graphql_helix_1.shouldRenderGraphiQL)(request)) {
                 resp.header('Content-Type', 'text/html');
                 resp.send((0, graphql_helix_1.renderGraphiQL)({
@@ -70,11 +81,11 @@ async function app() {
                 resp.status(result.status);
                 resp.serialize(result.payload);
                 resp.send(result.payload);
-                console.log(resp);
+                // console.log(resp);
             }
             else {
                 (0, graphql_helix_1.sendResult)(result, resp.raw);
-                console.log(result, resp.raw);
+                // console.log(result, resp.raw)
             }
         },
     });
@@ -176,6 +187,66 @@ async function app() {
                 console.log('Error fetching user data from Redis:', error);
                 reply.status(500).send('Internal Server Error');
             }
+        }
+    });
+    // File Upload Endpoint
+    server.post('/api/upload/file', async (req, reply) => {
+        try {
+            const data = await req.file();
+            if (!data) {
+                return reply.status(400).send('No file uploaded.');
+            }
+            const { filename, file } = data;
+            const mimetype = data.mimetype || 'application/octet-stream';
+            // Log the file details
+            console.log(`Uploading file: ${filename}`);
+            console.log(`File type: ${mimetype}`);
+            // Create a file object in the bucket
+            const blob = bucket.file(filename);
+            // Create a write stream to upload the file
+            const blobStream = blob.createWriteStream({
+                resumable: false,
+            });
+            blobStream.on('error', (err) => {
+                console.error('Error uploading file:', err);
+                // Ensure reply is sent only once
+                if (!reply.sent) {
+                    reply.status(500).send({ message: err.message });
+                }
+            });
+            blobStream.on('finish', () => {
+                const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+                console.log(`File uploaded successfully: ${publicUrl}`);
+                if (!reply.sent) {
+                    reply.status(200).send({ url: publicUrl });
+                }
+            });
+            // Pipe the file stream directly to the Google Cloud Storage stream
+            file.pipe(blobStream);
+        }
+        catch (error) {
+            console.error('File upload error:', error);
+            // Ensure reply is sent only once
+            if (!reply.sent) {
+                reply.status(500).send({ message: 'Internal Server Error' });
+            }
+        }
+    });
+    // List Files Endpoint
+    server.get('/api/files', async (req, reply) => {
+        try {
+            const [files] = await bucket.getFiles(); // List all files
+            const fileUrls = files.map(file => {
+                return {
+                    filename: file.name,
+                    url: `https://storage.googleapis.com/${bucket.name}/${file.name}`
+                };
+            });
+            reply.status(200).send(fileUrls);
+        }
+        catch (error) {
+            console.error('Error listing files:', error);
+            reply.status(500).send({ message: 'Internal Server Error' });
         }
     });
     //Server listening
