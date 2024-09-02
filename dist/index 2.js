@@ -3,7 +3,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bucket = exports.storage = void 0;
 require("graphql-import-node");
 const multer_1 = __importDefault(require("multer"));
 const fastify_1 = __importDefault(require("fastify"));
@@ -17,8 +16,8 @@ const schema_1 = require("./schema");
 const context_1 = require("./context");
 const redisClient_1 = __importDefault(require("./redisClient"));
 // Initialize Google Cloud Storage
-exports.storage = new storage_1.Storage();
-exports.bucket = exports.storage.bucket('anyday_essay_bucket');
+const storage = new storage_1.Storage();
+const bucket = storage.bucket('anyday_essay_bucket');
 // Multer setup for handling file uploads
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(), // Store file in memory
@@ -190,114 +189,57 @@ async function app() {
             }
         }
     });
-    // // File Upload Endpoint
-    // server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
-    //   try {
-    //     const files = [];
-    //     // Collect files from the request
-    //     for await (const file of req.files()) {
-    //       files.push(file);
-    //     }
-    //     if (files.length === 0) {
-    //       return reply.status(400).send('No files uploaded.');
-    //     }
-    //     const uploadPromises = files.map(async (data) => {
-    //       const { filename, file } = data;
-    //       const mimetype = data.mimetype || 'application/octet-stream';
-    //       // Log the file details
-    //       console.log(`Uploading file: ${filename}`);
-    //       console.log(`File type: ${mimetype}`);
-    //       // Create a file object in the bucket
-    //       const blob = bucket.file(filename);
-    //       // Create a write stream to upload the file
-    //       const blobStream = blob.createWriteStream({
-    //         resumable: false,
-    //       });
-    //       return new Promise((resolve, reject) => {
-    //         blobStream.on('error', (err) => {
-    //           console.error('Error uploading file:', err);
-    //           reject(err);
-    //         });
-    //         blobStream.on('finish', () => {
-    //           const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
-    //           console.log(`File uploaded successfully: ${publicUrl}`);
-    //           resolve(publicUrl);
-    //         });
-    //         // Pipe the file stream directly to the Google Cloud Storage stream
-    //         file.pipe(blobStream);
-    //       });
-    //     });
-    //     const urls = await Promise.all(uploadPromises);
-    //     reply.status(200).send({ urls });
-    //   } catch (error) {
-    //     console.error('File upload error:', error);
-    //     reply.status(500).send({ message: 'Internal Server Error' });
-    //   }
-    // });
     // File Upload Endpoint
-    server.post('/api/upload/files', async (req, reply) => {
+    server.post('/api/upload/file', async (req, reply) => {
         try {
-            const files = [];
-            // Collect files from the request
-            for await (const file of req.files()) {
-                files.push(file);
+            const data = await req.file();
+            if (!data) {
+                return reply.status(400).send('No file uploaded.');
             }
-            if (files.length === 0) {
-                return reply.status(400).send('No files uploaded.');
-            }
-            const uploadPromises = files.map(async (data) => {
-                const { filename, file } = data;
-                const mimetype = data.mimetype || 'application/octet-stream';
-                // Log the file details
-                console.log(`Uploading file: ${filename}`);
-                console.log(`File type: ${mimetype}`);
-                // Create a file object in the bucket
-                const blob = exports.bucket.file(filename);
-                // Create a write stream to upload the file
-                const blobStream = blob.createWriteStream({
-                    resumable: false,
-                });
-                return new Promise((resolve, reject) => {
-                    blobStream.on('error', (err) => {
-                        console.error('Error uploading file:', err);
-                        reject(err);
-                    });
-                    blobStream.on('finish', async () => {
-                        const publicUrl = `https://storage.cloud.google.com/${exports.bucket.name}/${blob.name}`;
-                        // Get file metadata to retrieve size
-                        const [metadata] = await blob.getMetadata();
-                        const fileSize = metadata.size; // File size in bytes
-                        // Create a file object to return
-                        const fileObject = {
-                            id: `${Date.now()}-${filename}`, // Example ID, could use UUID or other generator
-                            name: filename,
-                            url: publicUrl,
-                            size: fileSize,
-                            type: mimetype,
-                        };
-                        console.log(`File uploaded successfully: ${publicUrl}`);
-                        resolve(fileObject);
-                    });
-                    // Pipe the file stream directly to the Google Cloud Storage stream
-                    file.pipe(blobStream);
-                });
+            const { filename, file } = data;
+            const mimetype = data.mimetype || 'application/octet-stream';
+            // Log the file details
+            console.log(`Uploading file: ${filename}`);
+            console.log(`File type: ${mimetype}`);
+            // Create a file object in the bucket
+            const blob = bucket.file(filename);
+            // Create a write stream to upload the file
+            const blobStream = blob.createWriteStream({
+                resumable: false,
             });
-            const uploadedFiles = await Promise.all(uploadPromises);
-            reply.status(200).send({ uploadedFiles });
+            blobStream.on('error', (err) => {
+                console.error('Error uploading file:', err);
+                // Ensure reply is sent only once
+                if (!reply.sent) {
+                    reply.status(500).send({ message: err.message });
+                }
+            });
+            blobStream.on('finish', () => {
+                const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+                console.log(`File uploaded successfully: ${publicUrl}`);
+                if (!reply.sent) {
+                    reply.status(200).send({ url: publicUrl });
+                }
+            });
+            // Pipe the file stream directly to the Google Cloud Storage stream
+            file.pipe(blobStream);
         }
         catch (error) {
             console.error('File upload error:', error);
-            reply.status(500).send({ message: 'Internal Server Error' });
+            // Ensure reply is sent only once
+            if (!reply.sent) {
+                reply.status(500).send({ message: 'Internal Server Error' });
+            }
         }
     });
     // List Files Endpoint
     server.get('/api/files', async (req, reply) => {
         try {
-            const [files] = await exports.bucket.getFiles(); // List all files
+            const [files] = await bucket.getFiles(); // List all files
             const fileUrls = files.map(file => {
                 return {
                     filename: file.name,
-                    url: `https://storage.googleapis.com/${exports.bucket.name}/${file.name}`
+                    url: `https://storage.googleapis.com/${bucket.name}/${file.name}`
                 };
             });
             reply.status(200).send(fileUrls);

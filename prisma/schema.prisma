@@ -38,10 +38,10 @@ model User {
 model Order {
   id            Int         @id @default(autoincrement())
   studentId     Int
-  title         String
-  description   String?
-  documentPath  String?
   instructions  String
+  paperType     String
+  numberOfPages Int
+  dueDate       String
   status        OrderStatus
   totalAmount   Float
   depositAmount Float
@@ -49,12 +49,26 @@ model Order {
   updatedAt     DateTime    @updatedAt
 
   //Relations
-  student     User         @relation("UserOrders", fields: [studentId], references: [id])
-  payment     Payment?
-  reviews     Review[]
-  assignments Assignment[]
+  student       User         @relation("UserOrders", fields: [studentId], references: [id])
+  payment       Payment?
+  reviews       Review[]
+  assignments   Assignment[]
+  uploadedFiles File[]       @relation("OrderFiles")
 
   @@map("orders")
+}
+
+
+model File {
+  id         Int      @id @default(autoincrement())
+  url        String
+  name       String
+  size       String
+  type       String
+  orderId    Int
+  order      Order    @relation("OrderFiles", fields: [orderId], references: [id])
+
+  @@map("files")
 }
 
 model Payment {

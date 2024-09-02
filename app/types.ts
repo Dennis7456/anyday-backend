@@ -28,7 +28,7 @@ export type Assignment = {
 
 export type AttachFilesInput = {
   fileUrls: Array<Scalars['String']['input']>;
-  orderId: Scalars['Int']['input'];
+  orderId: Scalars['ID']['input'];
 };
 
 export type AuthPayload = {
@@ -45,12 +45,12 @@ export type CompleteRegistrationInput = {
 };
 
 export type CreateOrderInput = {
-  attachments: Scalars['String']['input'];
   dueDate: Scalars['String']['input'];
   instructions: Scalars['String']['input'];
   numberOfPages: Scalars['Int']['input'];
   paperType: Scalars['String']['input'];
   studentId: Scalars['Int']['input'];
+  uploadedFiles: Array<FileValueInput>;
 };
 
 export type CreateStudentInput = {
@@ -62,12 +62,29 @@ export type CreateStudentInput = {
   phoneNumber: Scalars['String']['input'];
 };
 
+export type FileValue = {
+  __typename?: 'FileValue';
+  id: Scalars['Int']['output'];
+  name: Scalars['String']['output'];
+  size: Scalars['String']['output'];
+  type: Scalars['String']['output'];
+  url: Scalars['String']['output'];
+};
+
+export type FileValueInput = {
+  id: Scalars['ID']['input'];
+  name: Scalars['String']['input'];
+  size: Scalars['String']['input'];
+  type: Scalars['String']['input'];
+  url: Scalars['String']['input'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   attachFiles: Order;
   completeRegistration: User;
   createAssignment: Assignment;
-  createOrder: Order;
+  createOrder: OrderResponse;
   createPayment: Payment;
   createReview: Review;
   createStudent: User;
@@ -150,20 +167,22 @@ export type MutationVerifyEmailArgs = {
 
 export type Order = {
   __typename?: 'Order';
-  assignments: Array<Assignment>;
-  createdAt: Scalars['String']['output'];
-  depositAmount: Scalars['Float']['output'];
-  description?: Maybe<Scalars['String']['output']>;
-  documentPath?: Maybe<Scalars['String']['output']>;
-  id: Scalars['Int']['output'];
+  dueDate: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
   instructions: Scalars['String']['output'];
-  payment?: Maybe<Payment>;
-  reviews: Array<Review>;
-  status: OrderStatus;
+  numberOfPages: Scalars['Int']['output'];
+  paperType: Scalars['String']['output'];
   student: User;
-  title: Scalars['String']['output'];
-  totalAmount: Scalars['Float']['output'];
-  updatedAt: Scalars['String']['output'];
+  studentId: Scalars['Int']['output'];
+  totalAmount: Scalars['Int']['output'];
+  uploadedFiles: Array<FileValue>;
+};
+
+export type OrderResponse = {
+  __typename?: 'OrderResponse';
+  message?: Maybe<Scalars['String']['output']>;
+  order: Order;
+  success: Scalars['Boolean']['output'];
 };
 
 export enum OrderStatus {
@@ -348,10 +367,14 @@ export type ResolversTypes = {
   CompleteRegistrationInput: CompleteRegistrationInput;
   CreateOrderInput: CreateOrderInput;
   CreateStudentInput: CreateStudentInput;
+  FileValue: ResolverTypeWrapper<FileValue>;
+  FileValueInput: FileValueInput;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
   Order: ResolverTypeWrapper<Order>;
+  OrderResponse: ResolverTypeWrapper<OrderResponse>;
   OrderStatus: OrderStatus;
   Payment: ResolverTypeWrapper<Payment>;
   PaymentStatus: PaymentStatus;
@@ -374,10 +397,14 @@ export type ResolversParentTypes = {
   CompleteRegistrationInput: CompleteRegistrationInput;
   CreateOrderInput: CreateOrderInput;
   CreateStudentInput: CreateStudentInput;
+  FileValue: FileValue;
+  FileValueInput: FileValueInput;
   Float: Scalars['Float']['output'];
+  ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   Mutation: {};
   Order: Order;
+  OrderResponse: OrderResponse;
   Payment: Payment;
   Query: {};
   RegisterOrderInput: RegisterOrderInput;
@@ -404,11 +431,20 @@ export type AuthPayloadResolvers<ContextType = any, ParentType extends Resolvers
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type FileValueResolvers<ContextType = any, ParentType extends ResolversParentTypes['FileValue'] = ResolversParentTypes['FileValue']> = {
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  size?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   attachFiles?: Resolver<ResolversTypes['Order'], ParentType, ContextType, RequireFields<MutationAttachFilesArgs, 'input'>>;
   completeRegistration?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationCompleteRegistrationArgs, 'input'>>;
   createAssignment?: Resolver<ResolversTypes['Assignment'], ParentType, ContextType, RequireFields<MutationCreateAssignmentArgs, 'orderId' | 'writerId'>>;
-  createOrder?: Resolver<ResolversTypes['Order'], ParentType, ContextType, RequireFields<MutationCreateOrderArgs, 'input'>>;
+  createOrder?: Resolver<ResolversTypes['OrderResponse'], ParentType, ContextType, RequireFields<MutationCreateOrderArgs, 'input'>>;
   createPayment?: Resolver<ResolversTypes['Payment'], ParentType, ContextType, RequireFields<MutationCreatePaymentArgs, 'amount' | 'orderId' | 'paymentStatus'>>;
   createReview?: Resolver<ResolversTypes['Review'], ParentType, ContextType, RequireFields<MutationCreateReviewArgs, 'orderId' | 'qaId' | 'rating' | 'writerId'>>;
   createStudent?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationCreateStudentArgs, 'input'>>;
@@ -419,20 +455,22 @@ export type MutationResolvers<ContextType = any, ParentType extends ResolversPar
 };
 
 export type OrderResolvers<ContextType = any, ParentType extends ResolversParentTypes['Order'] = ResolversParentTypes['Order']> = {
-  assignments?: Resolver<Array<ResolversTypes['Assignment']>, ParentType, ContextType>;
-  createdAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  depositAmount?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  documentPath?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  dueDate?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   instructions?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  payment?: Resolver<Maybe<ResolversTypes['Payment']>, ParentType, ContextType>;
-  reviews?: Resolver<Array<ResolversTypes['Review']>, ParentType, ContextType>;
-  status?: Resolver<ResolversTypes['OrderStatus'], ParentType, ContextType>;
+  numberOfPages?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  paperType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   student?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
-  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  totalAmount?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
-  updatedAt?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  studentId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  totalAmount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  uploadedFiles?: Resolver<Array<ResolversTypes['FileValue']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type OrderResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['OrderResponse'] = ResolversParentTypes['OrderResponse']> = {
+  message?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  order?: Resolver<ResolversTypes['Order'], ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -505,8 +543,10 @@ export type VerifyEmailResponseResolvers<ContextType = any, ParentType extends R
 export type Resolvers<ContextType = any> = {
   Assignment?: AssignmentResolvers<ContextType>;
   AuthPayload?: AuthPayloadResolvers<ContextType>;
+  FileValue?: FileValueResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Order?: OrderResolvers<ContextType>;
+  OrderResponse?: OrderResponseResolvers<ContextType>;
   Payment?: PaymentResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   RegisterOrderResponse?: RegisterOrderResponseResolvers<ContextType>;

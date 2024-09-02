@@ -22,7 +22,7 @@ type Mutation {
   ): AuthPayload!
   createStudent(input: CreateStudentInput!): User!
 
-  createOrder(input: CreateOrderInput!): Order!
+  createOrder(input: CreateOrderInput!): OrderResponse!
 
   attachFiles(input: AttachFilesInput!): Order!
 
@@ -76,11 +76,19 @@ input CreateOrderInput {
   paperType: String!
   numberOfPages: Int!
   dueDate: String!
-  attachments: String!
+  uploadedFiles: [FileValueInput!]!
   }
 input AttachFilesInput {
-  orderId: Int!
+  orderId: ID!
   fileUrls: [String!]!
+}
+
+input FileValueInput {
+  id: ID!
+  url: String!
+  name: String!
+  size: String!
+  type: String!
 }
 
 type RegisterOrderResponse {
@@ -94,6 +102,12 @@ type VerifyEmailResponse {
   message: String
   redirectUrl: String!
   token: String!
+}
+
+type OrderResponse {
+success: Boolean!
+message: String
+order: Order!
 }
 
 type User {
@@ -115,20 +129,16 @@ type User {
 }
 
 type Order {
-  id: Int!
+  id: ID!
+  studentId: Int!
   student: User!
-  title: String!
-  description: String
-  documentPath: String
   instructions: String!
-  status: OrderStatus!
-  totalAmount: Float!
-  depositAmount: Float!
-  createdAt: String!
-  updatedAt: String!
-  payment: Payment
-  reviews: [Review!]!
-  assignments: [Assignment!]!
+  paperType: String!
+  numberOfPages: Int!
+  dueDate: String!
+  uploadedFiles: [FileValue!]!
+  totalAmount: Int!
+  depositAmount: Int!
 }
 
 type Payment {
@@ -138,7 +148,6 @@ type Payment {
   paymentStatus: PaymentStatus!
   transactionId: String
   paymentDate: String!
-
   order: Order!
 }
 
@@ -168,6 +177,14 @@ type Assignment {
 type AuthPayload {
   token: String!
   user: User!
+}
+
+type FileValue {
+id: Int!
+url: String!
+name: String!
+size: String!
+type: String!
 }
 
 enum Role {

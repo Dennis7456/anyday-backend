@@ -33,8 +33,8 @@ interface VerifyEmailResponse {
 }
 
 // Initialize Google Cloud Storage
-const storage = new Storage();
-const bucket = storage.bucket('anyday_essay_bucket');
+export const storage = new Storage();
+export const bucket = storage.bucket('anyday_essay_bucket');
 
 // Multer setup for handling file uploads
 const upload = multer({
@@ -226,57 +226,134 @@ async function app() {
     }
   })
 
-  // File Upload Endpoint
-  server.post('/api/upload/file', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const data = await req.file();
+  // // File Upload Endpoint
+  // server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
+  //   try {
+  //     const files = [];
 
-      if (!data) {
-        return reply.status(400).send('No file uploaded.');
+  //     // Collect files from the request
+  //     for await (const file of req.files()) {
+  //       files.push(file);
+  //     }
+
+  //     if (files.length === 0) {
+  //       return reply.status(400).send('No files uploaded.');
+  //     }
+
+  //     const uploadPromises = files.map(async (data) => {
+  //       const { filename, file } = data;
+  //       const mimetype = data.mimetype || 'application/octet-stream';
+
+  //       // Log the file details
+  //       console.log(`Uploading file: ${filename}`);
+  //       console.log(`File type: ${mimetype}`);
+
+  //       // Create a file object in the bucket
+  //       const blob = bucket.file(filename);
+
+  //       // Create a write stream to upload the file
+  //       const blobStream = blob.createWriteStream({
+  //         resumable: false,
+  //       });
+
+  //       return new Promise((resolve, reject) => {
+  //         blobStream.on('error', (err) => {
+  //           console.error('Error uploading file:', err);
+  //           reject(err);
+  //         });
+
+  //         blobStream.on('finish', () => {
+  //           const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
+  //           console.log(`File uploaded successfully: ${publicUrl}`);
+  //           resolve(publicUrl);
+  //         });
+
+  //         // Pipe the file stream directly to the Google Cloud Storage stream
+  //         file.pipe(blobStream);
+  //       });
+  //     });
+
+  //     const urls = await Promise.all(uploadPromises);
+
+  //     reply.status(200).send({ urls });
+  //   } catch (error) {
+  //     console.error('File upload error:', error);
+  //     reply.status(500).send({ message: 'Internal Server Error' });
+  //   }
+  // });
+
+  // File Upload Endpoint
+  server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const files = [];
+
+      // Collect files from the request
+      for await (const file of req.files()) {
+        files.push(file);
       }
 
-      const { filename, file } = data;
-      const mimetype = data.mimetype || 'application/octet-stream';
+      if (files.length === 0) {
+        return reply.status(400).send('No files uploaded.');
+      }
 
-      // Log the file details
-      console.log(`Uploading file: ${filename}`);
-      console.log(`File type: ${mimetype}`);
+      const uploadPromises = files.map(async (data) => {
+        const { filename, file } = data;
+        const mimetype = data.mimetype || 'application/octet-stream';
 
-      // Create a file object in the bucket
-      const blob = bucket.file(filename);
+        // Log the file details
+        console.log(`Uploading file: ${filename}`);
+        console.log(`File type: ${mimetype}`);
 
-      // Create a write stream to upload the file
-      const blobStream = blob.createWriteStream({
-        resumable: false,
+        // Create a file object in the bucket
+        const blob = bucket.file(filename);
+
+        // Create a write stream to upload the file
+        const blobStream = blob.createWriteStream({
+          resumable: false,
+        });
+
+        return new Promise((resolve, reject) => {
+          blobStream.on('error', (err) => {
+            console.error('Error uploading file:', err);
+            reject(err);
+          });
+
+          blobStream.on('finish', async () => {
+            const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
+
+            // Get file metadata to retrieve size
+            const [metadata] = await blob.getMetadata();
+            const fileSize = metadata.size; // File size in bytes
+
+            // Create a file object to return
+            const fileObject = {
+              id: `${Date.now()}-${filename}`, // Example ID, could use UUID or other generator
+              name: filename,
+              url: publicUrl,
+              size: fileSize,
+              type: mimetype,
+            };
+
+            console.log(`File uploaded successfully: ${publicUrl}`);
+            resolve(fileObject);
+          });
+
+          // Pipe the file stream directly to the Google Cloud Storage stream
+          file.pipe(blobStream);
+        });
       });
 
-      blobStream.on('error', (err) => {
-        console.error('Error uploading file:', err);
-        // Ensure reply is sent only once
-        if (!reply.sent) {
-          reply.status(500).send({ message: err.message });
-        }
-      });
+      const uploadedFiles = await Promise.all(uploadPromises);
 
-      blobStream.on('finish', () => {
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-        console.log(`File uploaded successfully: ${publicUrl}`);
-        if (!reply.sent) {
-          reply.status(200).send({ url: publicUrl });
-        }
-      });
-
-      // Pipe the file stream directly to the Google Cloud Storage stream
-      file.pipe(blobStream);
-
+      reply.status(200).send({ uploadedFiles });
     } catch (error) {
       console.error('File upload error:', error);
-      // Ensure reply is sent only once
-      if (!reply.sent) {
-        reply.status(500).send({ message: 'Internal Server Error' });
-      }
+      reply.status(500).send({ message: 'Internal Server Error' });
     }
   });
+
+
+
 
   // List Files Endpoint
   server.get('/api/files', async (req: FastifyRequest, reply: FastifyReply) => {
