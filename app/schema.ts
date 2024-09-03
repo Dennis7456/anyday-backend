@@ -607,6 +607,11 @@ const resolvers = {
         where: { id: parent.studentId },
       });
     },
+    uploadedFiles: (parent: Order, _: {}, context: GraphQLContext) => {
+      return context.prisma.file.findMany({
+        where: { orderId: parent.id },
+      })
+    }
   },
 
   Payment: {
