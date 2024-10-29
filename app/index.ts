@@ -1,5 +1,8 @@
 import 'graphql-import-node';
-import fastify from 'fastify';
+import multer from 'multer';
+import fastify, { FastifyReply, FastifyRequest } from 'fastify';
+import { Storage } from '@google-cloud/storage';
+import FastifyMultipart from '@fastify/multipart';
 // import cookiePlugin from 'fastify-cookie';
 import cors from '@fastify/cors';
 import {
@@ -29,21 +32,38 @@ interface VerifyEmailResponse {
   };
 }
 
+// Initialize Google Cloud Storage
+export const storage = new Storage();
+export const bucket = storage.bucket('anyday_essay_bucket');
+
+// Multer setup for handling file uploads
+const upload = multer({
+  storage: multer.memoryStorage(), // Store file in memory
+});
+
 async function app() {
   const server = fastify({ logger: true });
+
+  server.register(FastifyMultipart);
 
   //Register fastify-cookie plugin
   // server.register(cookiePlugin as any);
 
   // CORS Configuration
   server.register(cors, {
-    origin: ['http://localhost:3000'], // Adjust the origin as needed
-    methods: ['OPTIONS'],
+    origin: [process.env.BASE_URL || 'https://anyday-frontend.web.app'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-    strictPreflight: false,
+    // strictPreflight: true,
   });
 
-  const port = 4000;
+  const port = Number(process.env.PORT) || 8080;
+
+  // Handle preflight requests
+  // server.options('*', (req, reply) => {
+  //   reply.status(204).send();
+  // });
 
   // GraphQL Endpoint
   server.route({
@@ -57,7 +77,14 @@ async function app() {
         body: req.body,
       };
 
-      resp.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+      // resp.header('Access-Control-Allow-Origin', process.env.BASE_URL || 'https://anyday-frontend.web.app');
+
+      // console.log('GraphQL Request:', {
+      //   headers: request.headers,
+      //   method: request.method,
+      //   query: request.query,
+      //   body: request.body,
+      // });
 
       if (shouldRenderGraphiQL(request)) {
         resp.header('Content-Type', 'text/html');
@@ -87,8 +114,10 @@ async function app() {
         resp.status(result.status);
         resp.serialize(result.payload);
         resp.send(result.payload);
+        // console.log(resp);
       } else {
         sendResult(result, resp.raw);
+        // console.log(result, resp.raw)
       }
     },
   });
@@ -149,7 +178,7 @@ async function app() {
         const data = result.data as unknown;
 
         if (data && typeof data === 'object' && 'verifyEmail' in data) {
-          const { valid, message, redirectUrl, token} = (data as VerifyEmailResponse).verifyEmail;
+          const { valid, message, redirectUrl, token } = (data as VerifyEmailResponse).verifyEmail;
           if (valid) {
             // Return a JSON response with the redirect URL
             // resp.status(200).send({ redirectUrl });
@@ -197,8 +226,156 @@ async function app() {
     }
   })
 
+  // // File Upload Endpoint
+  // server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
+  //   try {
+  //     const files = [];
+
+  //     // Collect files from the request
+  //     for await (const file of req.files()) {
+  //       files.push(file);
+  //     }
+
+  //     if (files.length === 0) {
+  //       return reply.status(400).send('No files uploaded.');
+  //     }
+
+  //     const uploadPromises = files.map(async (data) => {
+  //       const { filename, file } = data;
+  //       const mimetype = data.mimetype || 'application/octet-stream';
+
+  //       // Log the file details
+  //       console.log(`Uploading file: ${filename}`);
+  //       console.log(`File type: ${mimetype}`);
+
+  //       // Create a file object in the bucket
+  //       const blob = bucket.file(filename);
+
+  //       // Create a write stream to upload the file
+  //       const blobStream = blob.createWriteStream({
+  //         resumable: false,
+  //       });
+
+  //       return new Promise((resolve, reject) => {
+  //         blobStream.on('error', (err) => {
+  //           console.error('Error uploading file:', err);
+  //           reject(err);
+  //         });
+
+  //         blobStream.on('finish', () => {
+  //           const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
+  //           console.log(`File uploaded successfully: ${publicUrl}`);
+  //           resolve(publicUrl);
+  //         });
+
+  //         // Pipe the file stream directly to the Google Cloud Storage stream
+  //         file.pipe(blobStream);
+  //       });
+  //     });
+
+  //     const urls = await Promise.all(uploadPromises);
+
+  //     reply.status(200).send({ urls });
+  //   } catch (error) {
+  //     console.error('File upload error:', error);
+  //     reply.status(500).send({ message: 'Internal Server Error' });
+  //   }
+  // });
+
+  // File Upload Endpoint
+  server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const files = [];
+
+      // Collect files from the request
+      for await (const file of req.files()) {
+        files.push(file);
+      }
+
+      if (files.length === 0) {
+        return reply.status(400).send('No files uploaded.');
+      }
+
+      const uploadPromises = files.map(async (data) => {
+        const { filename, file } = data;
+        const mimetype = data.mimetype || 'application/octet-stream';
+
+        // Log the file details
+        console.log(`Uploading file: ${filename}`);
+        console.log(`File type: ${mimetype}`);
+
+        // Create a file object in the bucket
+        const blob = bucket.file(filename);
+
+        // Create a write stream to upload the file
+        const blobStream = blob.createWriteStream({
+          resumable: false,
+        });
+
+        return new Promise((resolve, reject) => {
+          blobStream.on('error', (err) => {
+            console.error('Error uploading file:', err);
+            reject(err);
+          });
+
+          blobStream.on('finish', async () => {
+            const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
+
+            // Get file metadata to retrieve size
+            const [metadata] = await blob.getMetadata();
+            const fileSize = metadata.size; // File size in bytes
+
+            // Create a file object to return
+            const fileObject = {
+              id: `${Date.now()}-${filename}`, // Example ID, could use UUID or other generator
+              name: filename,
+              url: publicUrl,
+              size: fileSize,
+              type: mimetype,
+            };
+
+            console.log(`File uploaded successfully: ${publicUrl}`);
+            resolve(fileObject);
+          });
+
+          // Pipe the file stream directly to the Google Cloud Storage stream
+          file.pipe(blobStream);
+        });
+      });
+
+      const uploadedFiles = await Promise.all(uploadPromises);
+
+      reply.status(200).send({ uploadedFiles });
+    } catch (error) {
+      console.error('File upload error:', error);
+      reply.status(500).send({ message: 'Internal Server Error' });
+    }
+  });
+
+
+
+
+  // List Files Endpoint
+  server.get('/api/files', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const [files] = await bucket.getFiles(); // List all files
+
+      const fileUrls = files.map(file => {
+        return {
+          filename: file.name,
+          url: `https://storage.googleapis.com/${bucket.name}/${file.name}`
+        };
+      });
+
+      reply.status(200).send(fileUrls);
+    } catch (error) {
+      console.error('Error listing files:', error);
+      reply.status(500).send({ message: 'Internal Server Error' });
+    }
+  });
+
   //Server listening
-  server.listen({ port: port }, (err, address) => {
+  server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
     if (err) {
       console.error(err);
       process.exit(1);

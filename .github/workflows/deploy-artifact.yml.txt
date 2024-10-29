@@ -1,0 +1,31 @@
+name: Build and Deploy to Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Build and push Docker image
+        run: |
+          docker buildx build --platform linux/amd64 -t gcr.io/anydayessay/anyday-backend-app:latest .
+          docker push gcr.io/anydayessay/anyday-backend-app:latest
+
+      - name: Deploy to Google Cloud Run
+        run: |
+          gcloud run deploy anyday-backend-app \
+            --image gcr.io/anydayessay/anyday-backend-app:latest \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated

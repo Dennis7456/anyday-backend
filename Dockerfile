@@ -1,24 +1,42 @@
-# Use the official Node.js image from the Docker Hub
-FROM node:16
+# Step 1: Build Stage
+FROM node:16 AS build
 
-# Create and set the working directory
+# Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Install app dependencies
+# Copy package.json and package-lock.json (or yarn.lock) to the container
 COPY package*.json ./
+
+# Copy the prisma schema to the container
+COPY prisma ./prisma
+
+# Install all dependencies (including dev dependencies)
 RUN npm install
 
-# Copy the app code
+# Copy the rest of the application code to the container
 COPY . .
 
-# Generate Prisma Client (Run after copying the code)
+# Generate Prisma Client
 RUN npx prisma generate
 
-# Run Prisma migrations
-RUN npx prisma migrate deploy
+# Remove dev dependencies after generating Prisma client
+RUN npm prune --production
+
+# Build the application if there's a build step (e.g., for TypeScript or Webpack)
+RUN npm run build
+# RUN npx tsc
+
+# Step 2: Production Stage
+FROM node:16-alpine AS production
+
+# Set the working directory inside the container
+WORKDIR /usr/src/app
+
+# Copy built application and node_modules from the build stage
+COPY --from=build /usr/src/app /usr/src/app
 
 # Expose the port the app runs on
-EXPOSE 4000
+EXPOSE 8080
 
-# Define the command to run the app
-CMD ["npm", "start"]
+# Run database migrations and start the application in one command
+ENTRYPOINT ["sh", "-c", "npx prisma migrate deploy && npm start"]
