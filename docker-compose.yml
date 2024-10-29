@@ -1,0 +1,11 @@
+version: '3'
+services:
+  backend:
+    image: my-backend-app
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=your-database-url
+      - REDIS_URL=your-redis-url
+    volumes:
+      - .:/usr/src/app
