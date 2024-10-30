@@ -13,6 +13,7 @@ import { emit } from 'process';
 import fs from 'fs';
 // import { sendVerificationEmail } from './sendVerificationEmail';
 import { sendVerificationEmail } from './sendVerificationEmail';
+import { sendOrderSuccessEmail } from './sendOrderSuccessEmail';
 import { RegisterOrderInput, RegisterOrderResponse, CreateStudentInput, CreateOrderInput, AttachFilesInput } from './types'
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
@@ -64,10 +65,15 @@ const resolvers = {
       return context.currentUser;
     },
     orders: async (_: unknown, __: {}, context: GraphQLContext) => {
-      // if (!context.currentUser) {
-      //   throw new Error('Authentication required');
-      // }
-      return context.prisma.order.findMany();
+      if (!context.currentUser) {
+        throw new Error('Authentication required');
+      }
+      return context.prisma.order.findMany({
+        where: {studentId: context.currentUser.id},
+        include: {
+          uploadedFiles: true
+        }
+      });
     },
     order: async (_: unknown, { id }: { id: number }, context: GraphQLContext) => {
       // if (!context.currentUser) {
@@ -487,9 +493,18 @@ const resolvers = {
           },
         });
 
+        // If the order creation is successful, send the email
+        const student = await context.prisma.user.findUnique({
+          where: { id: studentId },
+        });
+
+        if (student && student.email) {
+          sendOrderSuccessEmail(student.email, order.instructions, order.paperType, order.numberOfPages, order.dueDate, order.totalAmount, order.depositAmount, order.status, order.uploadedFiles);
+        }
+
         return {
           success: true,
-          message: "Order created successfully.",
+          message: "Order created successfully. A confirmation email has been sent.",
           order,
         };
       } catch (error) {

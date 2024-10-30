@@ -139,6 +139,7 @@ type Order {
   uploadedFiles: [FileValue!]!
   totalAmount: Int!
   depositAmount: Int!
+  status: OrderStatus!
 }
 
 type Payment {

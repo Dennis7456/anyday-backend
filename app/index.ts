@@ -18,6 +18,8 @@ import { schema } from './schema';
 import { contextFactory } from './context';
 import Client from './redisClient';
 import redisClient from './redisClient';
+import fs from 'fs';
+import path from 'path';
 
 interface VerifyEmailQuery {
   token: string;
@@ -226,91 +228,61 @@ async function app() {
     }
   })
 
-  // // File Upload Endpoint
-  // server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
-  //   try {
-  //     const files = [];
 
-  //     // Collect files from the request
-  //     for await (const file of req.files()) {
-  //       files.push(file);
-  //     }
+// File Upload Endpoint
+server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const files = [];
 
-  //     if (files.length === 0) {
-  //       return reply.status(400).send('No files uploaded.');
-  //     }
+    // Collect files from the request
+    for await (const file of req.files()) {
+      files.push(file);
+    }
 
-  //     const uploadPromises = files.map(async (data) => {
-  //       const { filename, file } = data;
-  //       const mimetype = data.mimetype || 'application/octet-stream';
+    if (files.length === 0) {
+      return reply.status(400).send('No files uploaded.');
+    }
 
-  //       // Log the file details
-  //       console.log(`Uploading file: ${filename}`);
-  //       console.log(`File type: ${mimetype}`);
+    const uploadPromises = files.map(async (data) => {
+      const { filename, file } = data;
+      const mimetype = data.mimetype || 'application/octet-stream';
 
-  //       // Create a file object in the bucket
-  //       const blob = bucket.file(filename);
+      if (process.env.NODE_ENV === 'development') {
+        // Save files locally during development
+        const uploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
 
-  //       // Create a write stream to upload the file
-  //       const blobStream = blob.createWriteStream({
-  //         resumable: false,
-  //       });
+        const localFilePath = path.join(uploadDir, filename);
+        const writeStream = fs.createWriteStream(localFilePath);
 
-  //       return new Promise((resolve, reject) => {
-  //         blobStream.on('error', (err) => {
-  //           console.error('Error uploading file:', err);
-  //           reject(err);
-  //         });
+        // Pipe the file stream to the local file system
+        file.pipe(writeStream);
 
-  //         blobStream.on('finish', () => {
-  //           const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
-  //           console.log(`File uploaded successfully: ${publicUrl}`);
-  //           resolve(publicUrl);
-  //         });
+        return new Promise((resolve, reject) => {
+          writeStream.on('finish', () => {
+            const fileObject = {
+              id: `${Date.now()}-${filename}`, // Example ID, could use UUID or other generator
+              name: filename,
+              url: localFilePath,
+              size: fs.statSync(localFilePath).size,
+              type: mimetype,
+            };
 
-  //         // Pipe the file stream directly to the Google Cloud Storage stream
-  //         file.pipe(blobStream);
-  //       });
-  //     });
+            console.log(`File saved locally: ${localFilePath}`);
+            resolve(fileObject);
+          });
 
-  //     const urls = await Promise.all(uploadPromises);
-
-  //     reply.status(200).send({ urls });
-  //   } catch (error) {
-  //     console.error('File upload error:', error);
-  //     reply.status(500).send({ message: 'Internal Server Error' });
-  //   }
-  // });
-
-  // File Upload Endpoint
-  server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const files = [];
-
-      // Collect files from the request
-      for await (const file of req.files()) {
-        files.push(file);
-      }
-
-      if (files.length === 0) {
-        return reply.status(400).send('No files uploaded.');
-      }
-
-      const uploadPromises = files.map(async (data) => {
-        const { filename, file } = data;
-        const mimetype = data.mimetype || 'application/octet-stream';
-
-        // Log the file details
-        console.log(`Uploading file: ${filename}`);
-        console.log(`File type: ${mimetype}`);
-
-        // Create a file object in the bucket
-        const blob = bucket.file(filename);
-
-        // Create a write stream to upload the file
-        const blobStream = blob.createWriteStream({
-          resumable: false,
+          writeStream.on('error', (err) => {
+            console.error('Error saving file locally:', err);
+            reject(err);
+          });
         });
+      } else {
+        // In production, upload to Google Cloud Storage
+        const blob = bucket.file(filename);
+        const blobStream = blob.createWriteStream({ resumable: false });
 
         return new Promise((resolve, reject) => {
           blobStream.on('error', (err) => {
@@ -320,14 +292,11 @@ async function app() {
 
           blobStream.on('finish', async () => {
             const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
-
-            // Get file metadata to retrieve size
             const [metadata] = await blob.getMetadata();
-            const fileSize = metadata.size; // File size in bytes
+            const fileSize = metadata.size;
 
-            // Create a file object to return
             const fileObject = {
-              id: `${Date.now()}-${filename}`, // Example ID, could use UUID or other generator
+              id: `${Date.now()}-${filename}`,
               name: filename,
               url: publicUrl,
               size: fileSize,
@@ -338,41 +307,64 @@ async function app() {
             resolve(fileObject);
           });
 
-          // Pipe the file stream directly to the Google Cloud Storage stream
           file.pipe(blobStream);
         });
-      });
+      }
+    });
 
-      const uploadedFiles = await Promise.all(uploadPromises);
+    const uploadedFiles = await Promise.all(uploadPromises);
+    reply.status(200).send({ uploadedFiles });
+  } catch (error) {
+    console.error('File upload error:', error);
+    reply.status(500).send({ message: 'Internal Server Error' });
+  }
+});
 
-      reply.status(200).send({ uploadedFiles });
-    } catch (error) {
-      console.error('File upload error:', error);
-      reply.status(500).send({ message: 'Internal Server Error' });
-    }
-  });
 
 
 
 
   // List Files Endpoint
-  server.get('/api/files', async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
+server.get('/api/files', async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    let fileUrls = [];
+
+    if (process.env.NODE_ENV === 'production') {
+      // Production: List files from Google Cloud Storage
       const [files] = await bucket.getFiles(); // List all files
 
-      const fileUrls = files.map(file => {
+      fileUrls = files.map(file => {
         return {
           filename: file.name,
-          url: `https://storage.googleapis.com/${bucket.name}/${file.name}`
+          url: `https://storage.googleapis.com/${bucket.name}/${file.name}`,
         };
       });
+    } else {
+      // Development: List files from the local uploads directory
+      const uploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads');
 
-      reply.status(200).send(fileUrls);
-    } catch (error) {
-      console.error('Error listing files:', error);
-      reply.status(500).send({ message: 'Internal Server Error' });
+      // Read the directory to get a list of files
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+
+        fileUrls = files.map(filename => {
+          return {
+            filename,
+            url: `${uploadDir}/${filename}`, // Local file path for development
+          };
+        });
+      } else {
+        return reply.status(400).send('Upload directory not found.');
+      }
     }
-  });
+
+    // Send the list of files as a response
+    reply.status(200).send(fileUrls);
+  } catch (error) {
+    console.error('Error listing files:', error);
+    reply.status(500).send({ message: 'Internal Server Error' });
+  }
+});
 
   //Server listening
   server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
