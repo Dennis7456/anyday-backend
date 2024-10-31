@@ -20,6 +20,9 @@ import Client from './redisClient';
 import redisClient from './redisClient';
 import fs from 'fs';
 import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 interface VerifyEmailQuery {
   token: string;
@@ -229,142 +232,142 @@ async function app() {
   })
 
 
-// File Upload Endpoint
-server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
-  try {
-    const files = [];
+  // File Upload Endpoint
+  server.post('/api/upload/files', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const files = [];
 
-    // Collect files from the request
-    for await (const file of req.files()) {
-      files.push(file);
-    }
-
-    if (files.length === 0) {
-      return reply.status(400).send('No files uploaded.');
-    }
-
-    const uploadPromises = files.map(async (data) => {
-      const { filename, file } = data;
-      const mimetype = data.mimetype || 'application/octet-stream';
-
-      if (process.env.NODE_ENV === 'development') {
-        // Save files locally during development
-        const uploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads');
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        const localFilePath = path.join(uploadDir, filename);
-        const writeStream = fs.createWriteStream(localFilePath);
-
-        // Pipe the file stream to the local file system
-        file.pipe(writeStream);
-
-        return new Promise((resolve, reject) => {
-          writeStream.on('finish', () => {
-            const fileObject = {
-              id: `${Date.now()}-${filename}`, // Example ID, could use UUID or other generator
-              name: filename,
-              url: localFilePath,
-              size: fs.statSync(localFilePath).size,
-              type: mimetype,
-            };
-
-            console.log(`File saved locally: ${localFilePath}`);
-            resolve(fileObject);
-          });
-
-          writeStream.on('error', (err) => {
-            console.error('Error saving file locally:', err);
-            reject(err);
-          });
-        });
-      } else {
-        // In production, upload to Google Cloud Storage
-        const blob = bucket.file(filename);
-        const blobStream = blob.createWriteStream({ resumable: false });
-
-        return new Promise((resolve, reject) => {
-          blobStream.on('error', (err) => {
-            console.error('Error uploading file:', err);
-            reject(err);
-          });
-
-          blobStream.on('finish', async () => {
-            const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
-            const [metadata] = await blob.getMetadata();
-            const fileSize = metadata.size;
-
-            const fileObject = {
-              id: `${Date.now()}-${filename}`,
-              name: filename,
-              url: publicUrl,
-              size: fileSize,
-              type: mimetype,
-            };
-
-            console.log(`File uploaded successfully: ${publicUrl}`);
-            resolve(fileObject);
-          });
-
-          file.pipe(blobStream);
-        });
+      // Collect files from the request
+      for await (const file of req.files()) {
+        files.push(file);
       }
-    });
 
-    const uploadedFiles = await Promise.all(uploadPromises);
-    reply.status(200).send({ uploadedFiles });
-  } catch (error) {
-    console.error('File upload error:', error);
-    reply.status(500).send({ message: 'Internal Server Error' });
-  }
-});
+      if (files.length === 0) {
+        return reply.status(400).send('No files uploaded.');
+      }
+
+      const uploadPromises = files.map(async (data) => {
+        const { filename, file } = data;
+        const mimetype = data.mimetype || 'application/octet-stream';
+
+        if (process.env.NODE_ENV === 'development') {
+          // Save files locally during development
+          const uploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+
+          const localFilePath = path.join(uploadDir, filename);
+          const writeStream = fs.createWriteStream(localFilePath);
+
+          // Pipe the file stream to the local file system
+          file.pipe(writeStream);
+
+          return new Promise((resolve, reject) => {
+            writeStream.on('finish', () => {
+              const fileObject = {
+                id: `${Date.now()}-${filename}`, // Example ID, could use UUID or other generator
+                name: filename,
+                url: localFilePath,
+                size: fs.statSync(localFilePath).size,
+                type: mimetype,
+              };
+
+              console.log(`File saved locally: ${localFilePath}`);
+              resolve(fileObject);
+            });
+
+            writeStream.on('error', (err) => {
+              console.error('Error saving file locally:', err);
+              reject(err);
+            });
+          });
+        } else {
+          // In production, upload to Google Cloud Storage
+          const blob = bucket.file(filename);
+          const blobStream = blob.createWriteStream({ resumable: false });
+
+          return new Promise((resolve, reject) => {
+            blobStream.on('error', (err) => {
+              console.error('Error uploading file:', err);
+              reject(err);
+            });
+
+            blobStream.on('finish', async () => {
+              const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`;
+              const [metadata] = await blob.getMetadata();
+              const fileSize = metadata.size;
+
+              const fileObject = {
+                id: `${Date.now()}-${filename}`,
+                name: filename,
+                url: publicUrl,
+                size: fileSize,
+                type: mimetype,
+              };
+
+              console.log(`File uploaded successfully: ${publicUrl}`);
+              resolve(fileObject);
+            });
+
+            file.pipe(blobStream);
+          });
+        }
+      });
+
+      const uploadedFiles = await Promise.all(uploadPromises);
+      reply.status(200).send({ uploadedFiles });
+    } catch (error) {
+      console.error('File upload error:', error);
+      reply.status(500).send({ message: 'Internal Server Error' });
+    }
+  });
 
 
 
 
 
   // List Files Endpoint
-server.get('/api/files', async (req: FastifyRequest, reply: FastifyReply) => {
-  try {
-    let fileUrls = [];
+  server.get('/api/files', async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      let fileUrls = [];
 
-    if (process.env.NODE_ENV === 'production') {
-      // Production: List files from Google Cloud Storage
-      const [files] = await bucket.getFiles(); // List all files
+      if (process.env.NODE_ENV === 'production') {
+        // Production: List files from Google Cloud Storage
+        const [files] = await bucket.getFiles(); // List all files
 
-      fileUrls = files.map(file => {
-        return {
-          filename: file.name,
-          url: `https://storage.googleapis.com/${bucket.name}/${file.name}`,
-        };
-      });
-    } else {
-      // Development: List files from the local uploads directory
-      const uploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads');
-
-      // Read the directory to get a list of files
-      if (fs.existsSync(uploadDir)) {
-        const files = fs.readdirSync(uploadDir);
-
-        fileUrls = files.map(filename => {
+        fileUrls = files.map(file => {
           return {
-            filename,
-            url: `${uploadDir}/${filename}`, // Local file path for development
+            filename: file.name,
+            url: `https://storage.googleapis.com/${bucket.name}/${file.name}`,
           };
         });
       } else {
-        return reply.status(400).send('Upload directory not found.');
-      }
-    }
+        // Development: List files from the local uploads directory
+        const uploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads');
 
-    // Send the list of files as a response
-    reply.status(200).send(fileUrls);
-  } catch (error) {
-    console.error('Error listing files:', error);
-    reply.status(500).send({ message: 'Internal Server Error' });
-  }
-});
+        // Read the directory to get a list of files
+        if (fs.existsSync(uploadDir)) {
+          const files = fs.readdirSync(uploadDir);
+
+          fileUrls = files.map(filename => {
+            return {
+              filename,
+              url: `${uploadDir}/${filename}`, // Local file path for development
+            };
+          });
+        } else {
+          return reply.status(400).send('Upload directory not found.');
+        }
+      }
+
+      // Send the list of files as a response
+      reply.status(200).send(fileUrls);
+    } catch (error) {
+      console.error('Error listing files:', error);
+      reply.status(500).send({ message: 'Internal Server Error' });
+    }
+  });
 
   //Server listening
   server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
