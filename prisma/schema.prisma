@@ -14,7 +14,7 @@ datasource db {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(uuid())
   firstName   String
   lastName    String
   userName    String
@@ -36,8 +36,8 @@ model User {
 }
 
 model Order {
-  id            Int         @id @default(autoincrement())
-  studentId     Int
+  id            String         @id @default(uuid())
+  studentId     String
   instructions  String
   paperType     String
   numberOfPages Int
@@ -60,20 +60,20 @@ model Order {
 
 
 model File {
-  id         Int      @id @default(autoincrement())
+  id         String      @id @default(uuid())
   url        String
   name       String
   size       String
   type       String
-  orderId    Int
+  orderId    String
   order      Order    @relation("OrderFiles", fields: [orderId], references: [id])
 
   @@map("files")
 }
 
 model Payment {
-  id            Int           @id @default(autoincrement())
-  orderId       Int           @unique
+  id            String           @id @default(uuid())
+  orderId       String           @unique
   amount        Float
   paymentStatus PaymentStatus
   transactionId String?
@@ -86,10 +86,10 @@ model Payment {
 }
 
 model Review {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  qaId      Int
-  writerId  Int
+  id        String      @id @default(uuid())
+  orderId   String
+  qaId      String
+  writerId  String
   comments  String?
   rating    Int
   createdAt DateTime @default(now())
@@ -104,9 +104,9 @@ model Review {
 }
 
 model Assignment {
-  id          Int       @id @default(autoincrement())
-  orderId     Int
-  writerId    Int
+  id          String       @id @default(uuid())
+  orderId     String
+  writerId    String
   assignedAt  DateTime  @default(now())
   completedAt DateTime?
 

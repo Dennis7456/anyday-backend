@@ -26,7 +26,7 @@ async function authenticateUser(
 
         return await prisma.user.findUnique({
           where: {
-            id: tokenPayload.userId,
+            id: tokenPayload.userId.toString(),
           }
         });
       }

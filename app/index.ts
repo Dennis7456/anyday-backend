@@ -2,7 +2,9 @@ import 'graphql-import-node';
 import multer from 'multer';
 import fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import { Storage } from '@google-cloud/storage';
-import FastifyMultipart from '@fastify/multipart';
+import FastifyMultipart, { MultipartFile } from '@fastify/multipart';
+import fastifyMulter from 'fastify-multer';
+import fastifyMultipart from '@fastify/multipart';
 // import cookiePlugin from 'fastify-cookie';
 import cors from '@fastify/cors';
 import {
@@ -21,8 +23,11 @@ import redisClient from './redisClient';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import fastifyStatic from '@fastify/static';
 
 dotenv.config();
+
+const localUploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads')
 
 interface VerifyEmailQuery {
   token: string;
@@ -39,7 +44,9 @@ interface VerifyEmailResponse {
 
 // Initialize Google Cloud Storage
 export const storage = new Storage();
-export const bucket = storage.bucket('anyday_essay_bucket');
+export const bucket = storage.bucket('anyday-essay-bucket');
+
+
 
 // Multer setup for handling file uploads
 const upload = multer({
@@ -49,7 +56,7 @@ const upload = multer({
 async function app() {
   const server = fastify({ logger: true });
 
-  server.register(FastifyMultipart);
+  // server.register(FastifyMultipart);
 
   //Register fastify-cookie plugin
   // server.register(cookiePlugin as any);
@@ -62,6 +69,16 @@ async function app() {
     credentials: true,
     // strictPreflight: true,
   });
+
+  // Register @fastify/multipart
+  server.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10 MB limit
+    },
+  });
+
+
+  const upload = fastifyMulter({ dest: localUploadDir });
 
   const port = Number(process.env.PORT) || 8080;
 
@@ -209,7 +226,7 @@ async function app() {
     url: '/api/redis/user-data',
     handler: async (req, reply) => {
       const token = req.headers.authorization?.split(' ')[1];
-      console.log(req.headers)
+      // console.log(req.headers)
       if (!token) {
         reply.status(401).send('Token is required');
         return;
@@ -266,10 +283,10 @@ async function app() {
           return new Promise((resolve, reject) => {
             writeStream.on('finish', () => {
               const fileObject = {
-                id: `${Date.now()}-${filename}`, // Example ID, could use UUID or other generator
+                id: `${Date.now()}-${filename}`, // Generate an ID
                 name: filename,
                 url: localFilePath,
-                size: fs.statSync(localFilePath).size,
+                size: fs.statSync(localFilePath).size.toString(), // Ensure size is a string
                 type: mimetype,
               };
 
@@ -285,7 +302,13 @@ async function app() {
         } else {
           // In production, upload to Google Cloud Storage
           const blob = bucket.file(filename);
-          const blobStream = blob.createWriteStream({ resumable: false });
+          const blobStream = blob.createWriteStream({
+            resumable: true,
+            gzip: true,
+            metadata: {
+              contentType: mimetype,
+            }
+          });
 
           return new Promise((resolve, reject) => {
             blobStream.on('error', (err) => {
@@ -299,10 +322,10 @@ async function app() {
               const fileSize = metadata.size;
 
               const fileObject = {
-                id: `${Date.now()}-${filename}`,
+                id: `${Date.now()}-${filename}`, // Generate an ID
                 name: filename,
                 url: publicUrl,
-                size: fileSize,
+                size: fileSize?.toString(), // Ensure size is a string
                 type: mimetype,
               };
 
@@ -322,7 +345,6 @@ async function app() {
       reply.status(500).send({ message: 'Internal Server Error' });
     }
   });
-
 
 
 
@@ -366,6 +388,32 @@ async function app() {
     } catch (error) {
       console.error('Error listing files:', error);
       reply.status(500).send({ message: 'Internal Server Error' });
+    }
+  });
+
+  // Register fastify-static plugin
+  server.register(fastifyStatic, {
+    root: path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads'),
+    prefix: '/uploads/', // The URL prefix for serving files
+  });
+
+  // Route to access uploaded files
+  server.get('/uploads/:filename', async (req, reply) => {
+    const { filename } = req.params as { filename: string };
+    const filePath = path.join(process.env.LOCAL_UPLOAD_DIR || './uploads', filename);
+
+    try {
+      // Check if the file exists
+      if (!fs.existsSync(filePath)) {
+        reply.status(404).send('File not found');
+        return;
+      }
+
+      // Send the file
+      return reply.sendFile(filename);
+    } catch (error) {
+      console.error('Error serving file:', error);
+      reply.status(500).send('Internal Server Error');
     }
   });
 
