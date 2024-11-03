@@ -44,6 +44,8 @@ type Mutation {
   ): Review!
 
   createAssignment(orderId: Int!, writerId: Int!): Assignment!
+
+   updateOrderStatus(orderId: ID!, status: String!): Order
   
 }
 

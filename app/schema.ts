@@ -15,6 +15,7 @@ import fs from 'fs';
 import { sendVerificationEmail } from './sendVerificationEmail';
 import { sendOrderSuccessEmail } from './sendOrderSuccessEmail';
 import { RegisterOrderInput, RegisterOrderResponse, CreateStudentInput, CreateOrderInput, AttachFilesInput } from './types'
+import { OrderStatus } from '.prisma/client';
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
 const baseUrl = process.env.BASE_URL || "https://anyday-frontend.web.app"
@@ -71,7 +72,7 @@ const resolvers = {
       return context.prisma.order.findMany({
         where: {studentId: context.currentUser.id},
         include: {
-          uploadedFiles: true
+          uploadedFiles: true 
         }
       });
     },
@@ -85,6 +86,15 @@ const resolvers = {
     },
   },
   Mutation: {
+    updateOrderStatus: async (_:unknown, { orderId, status}: {orderId:number; status: OrderStatus}, context: GraphQLContext) => {
+      //Update order status in the database
+      const updatedOrder = await context.prisma.order.update({
+        where: { id : orderId },
+        data: { status },
+      });
+
+      return updatedOrder;
+    },
     registerAndCreateOrder: async (
       _: unknown,
       // { email, paperType, pages, dueDate
