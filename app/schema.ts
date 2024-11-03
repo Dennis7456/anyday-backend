@@ -70,9 +70,9 @@ const resolvers = {
         throw new Error('Authentication required');
       }
       return context.prisma.order.findMany({
-        where: {studentId: context.currentUser.id},
+        where: { studentId: context.currentUser.id },
         include: {
-          uploadedFiles: true 
+          uploadedFiles: true
         }
       });
     },
@@ -86,14 +86,22 @@ const resolvers = {
     },
   },
   Mutation: {
-    updateOrderStatus: async (_:unknown, { orderId, status}: {orderId:number; status: OrderStatus}, context: GraphQLContext) => {
-      //Update order status in the database
-      const updatedOrder = await context.prisma.order.update({
-        where: { id : orderId },
-        data: { status },
-      });
+    updateOrderStatus: async (_: unknown, { orderId, status }: { orderId: number; status: OrderStatus }, context: GraphQLContext) => {
+      try {
+        //Update order status in the database
+        const updatedOrder = await context.prisma.order.update({
+          where: { id: Number(orderId) },
+          data: { status },
+        });
 
-      return updatedOrder;
+        return updatedOrder;
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error('Error updating order status:', error.message)
+        } else {
+          console.error('Unexpected error', error)
+        }
+      }
     },
     registerAndCreateOrder: async (
       _: unknown,
