@@ -37,6 +37,6 @@ jobs:
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated
-             --service-account your-service-account@your-project-id.iam.gserviceaccount.com \
+             --service-account github-actions@anyday-essay.iam.gserviceaccount.com \
             --no-traffic \
             --logging=cloud-logging-only  # Explicitly set to CLOUD_LOGGING_ONLY
