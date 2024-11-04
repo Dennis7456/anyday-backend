@@ -24,19 +24,20 @@ jobs:
 
       - name: Configure Docker to use the gcloud command-line tool as a credential helper
         run: |
-          gcloud auth configure-docker
+          gcloud auth configure-docker us-docker.pkg.dev
 
       - name: Build Docker image and Push to Google Container Registry
         run: |
-          docker build -t gcr.io/anyday-essay/anyday-essay-fastify-app:latest --push .
+          docker build -t us-docker.pkg.dev/anyday-essay/anyday-essay-fastify-app:latest .
+          docker push us-docker.pkg.dev/anyday-essay/anyday-essay-fastify-app:latest
 
       - name: Deploy to Google Cloud Run
         run: |
           gcloud run deploy anyday-essay-fastify-app \
-            --image gcr.io/anyday-essay/anyday-essay-fastify-app:latest \
+            --image us-docker.pkg.dev/anyday-essay/anyday-essay-fastify-app:latest \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated
              --service-account github-actions@anyday-essay.iam.gserviceaccount.com \
             --no-traffic \
-            --logging=cloud-logging-only  # Explicitly set to CLOUD_LOGGING_ONLY
+            --logging=cloud-logging-only
