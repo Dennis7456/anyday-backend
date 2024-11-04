@@ -1,4 +1,5 @@
 import 'graphql-import-node';
+import Stripe from 'stripe';
 import multer from 'multer';
 import fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import { Storage } from '@google-cloud/storage';
@@ -26,6 +27,14 @@ import dotenv from 'dotenv';
 import fastifyStatic from '@fastify/static';
 
 dotenv.config();
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+  throw new Error("STRIPE_SECRET_KEY environment variable is not set.");
+}
+
+const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-10-28.acacia' });
 
 const localUploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads')
 
@@ -422,6 +431,69 @@ async function app() {
       reply.status(500).send('Internal Server Error');
     }
   });
+
+// Define the type for the request body
+interface CreateSessionRequestBody {
+  orderId: string;
+  amount: number;
+  paymentType: 'deposit' | 'full';
+}
+  // Route to create a payment session
+server.post('/api/payment/create-session', async (req: FastifyRequest<{ Body: CreateSessionRequestBody }>, reply: FastifyReply
+  ) => {
+  const { orderId, amount, paymentType } = req.body; // `amount` is in cents
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: [
+        'card',
+        'alipay',
+        // 'wechat_pay',
+        'cashapp',
+        'link'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `Order Payment - ${paymentType === 'deposit' ? 'Deposit' : 'Full Amount'}`,
+            },
+            unit_amount: amount, // Amount in cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.BASE_URL}/payment-success?orderId=${orderId}`,
+      cancel_url: `${process.env.BASE_URL}/payment-cancel?orderId=${orderId}`,
+    });
+
+    reply.send({ url: session.url });
+  } catch (error) {
+    console.error('Stripe Session Error:', error);
+    reply.status(500).send('Error creating payment session');
+  }
+});
+
+app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  try {
+    const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      // Update order status in your database based on session details
+      updateOrderStatus(session.client_reference_id, 'IN_PROGRESS');
+      sendConfirmationEmail(session.customer_email);
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(400).send(`Webhook error: ${error.message}`);
+  }
+});
 
   //Server listening
   server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
