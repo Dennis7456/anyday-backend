@@ -5,6 +5,7 @@
     "rootDir": "./app", // Root directory of your TypeScript files
     "outDir": "./dist", // Directory where the compiled JavaScript files will go
     "strict": true, // Enable all strict type-checking options
+    "lib":["ES2021", "DOM"],
     "esModuleInterop": true, // Enables interoperability between CommonJS and ES Modules
     "skipLibCheck": true, // Skip type checking of declaration files
     "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file

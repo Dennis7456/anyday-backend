@@ -77,6 +77,16 @@ async function app() {
     },
   });
 
+  server.register(fastifyStatic, {
+    root: localUploadDir,
+    prefix: '/uploads/'
+  })
+
+  //  // Register fastify-static plugin
+  // server.register(fastifyStatic, {
+  //   root: path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads'),
+  //   prefix: '/uploads/', // The URL prefix for serving files
+  // });
 
   const upload = fastifyMulter({ dest: localUploadDir });
 
@@ -285,7 +295,7 @@ async function app() {
               const fileObject = {
                 id: `${Date.now()}-${filename}`, // Generate an ID
                 name: filename,
-                url: localFilePath,
+                url: `/uploads/${encodeURIComponent(filename)}`,
                 size: fs.statSync(localFilePath).size.toString(), // Ensure size is a string
                 type: mimetype,
               };
@@ -391,11 +401,7 @@ async function app() {
     }
   });
 
-  // Register fastify-static plugin
-  server.register(fastifyStatic, {
-    root: path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads'),
-    prefix: '/uploads/', // The URL prefix for serving files
-  });
+ 
 
   // Route to access uploaded files
   server.get('/uploads/:filename', async (req, reply) => {
