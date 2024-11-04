@@ -1,13 +1,7 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendVerificationEmail = void 0;
-const node_mailjet_1 = __importDefault(require("node-mailjet"));
+import Mailjet from 'node-mailjet';
 // Initialize Mailjet client with your API keys
-const mailjet = node_mailjet_1.default.apiConnect(process.env.MAILJET_API_KEY, process.env.MAILJET_SECRET_KEY);
-const sendVerificationEmail = async (to, verificationToken) => {
+const mailjet = Mailjet.apiConnect(process.env.MAILJET_API_KEY, process.env.MAILJET_SECRET_KEY);
+export const sendVerificationEmail = async (to, verificationToken) => {
     const backEndUrl = process.env.BACKEND_URL ? process.env.BACKEND_URL : 'https://anyday-backend-app-hufozn77kq-uc.a.run.app';
     const verificationLink = `${backEndUrl}/verify-email?token=${verificationToken}`;
     const data = {
@@ -39,4 +33,3 @@ const sendVerificationEmail = async (to, verificationToken) => {
         throw new Error('Failed to send verification email');
     }
 };
-exports.sendVerificationEmail = sendVerificationEmail;

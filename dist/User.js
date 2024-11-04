@@ -1,5 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const users = [
     {
         id: '1',
@@ -16,7 +14,7 @@ const users = [
         password: 'imroy'
     }
 ];
-exports.default = {
+export default {
     getUsers: () => users
     // addUser: (user) => users.push(user),
 };

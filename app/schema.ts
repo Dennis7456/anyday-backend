@@ -1,20 +1,20 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import { GraphQLContext } from './context';
+import { GraphQLContext } from './context.ts';
 import typeDefs from './schema.graphql';
 import { User, Order, Payment, Review, Assignment, Role, PaymentStatus } from '.prisma/client';
 import { compare, hash } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
-import { bucket, storage } from './index';
-import { APP_SECRET } from './auth';
+import { bucket, storage } from './index.ts';
+import { APP_SECRET } from './auth.ts';
 import { v4 as uuidv4 } from 'uuid';
-import redisClient from './redisClient';
+import redisClient from './redisClient.ts';
 import { isEmail } from 'validator';
 import { emit } from 'process';
 import fs from 'fs';
 // import { sendVerificationEmail } from './sendVerificationEmail';
-import { sendVerificationEmail } from './sendVerificationEmail';
-import { sendOrderSuccessEmail } from './sendOrderSuccessEmail';
-import { RegisterOrderInput, RegisterOrderResponse, CreateStudentInput, CreateOrderInput, AttachFilesInput } from './types'
+import { sendVerificationEmail } from './sendVerificationEmail.ts';
+import { sendOrderSuccessEmail } from './sendOrderSuccessEmail.ts';
+import { RegisterOrderInput, RegisterOrderResponse, CreateStudentInput, CreateOrderInput, AttachFilesInput } from './types.ts'
 import { OrderStatus } from '.prisma/client';
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
@@ -212,171 +212,6 @@ const resolvers = {
       }
     },
 
-    // createOrder: async (
-    //   _: unknown,
-    //   { input }: { input: CreateOrderInput },
-    //   context: GraphQLContext
-    // ) => {
-    //   const { studentId, instructions, paperType, numberOfPages, dueDate, uploadedFiles } = input;
-
-    //   //Validate input fields
-    //   if (!instructions || !paperType || !numberOfPages || !dueDate) {
-    //     console.error("Validation error: Missing required fields.");
-    //     return {
-    //       success: false,
-    //       message: "All fields are required.",
-    //       order: null,
-    //     };
-    //   }
-
-    //   const base64ToBuffer = (base64: string, contentType: string) => {
-    //     // console.log("Base64:", base64);
-    //     // console.log("ContentType:", contentType);
-    //     try {
-    //       // const matches = base64.match(/^data:(.+);base64,(.+)$/);
-    //       // if (!matches) {
-    //       //   console.error("Invalid base64 format.", base64);
-    //       //   throw new Error('Invalid base64 string!');
-    //       // }
-    //       return {
-    //         buffer: Buffer.from(base64, 'base64'),
-    //         contentType: contentType || 'image/png',
-    //       }
-    //     }
-    //     catch (error) {
-    //       if (error instanceof Error) {
-    //         console.error("Error in base64ToBuffer:", error.message);
-    //       } else {
-    //         console.error("An unknown error occurred in base64ToBuffer.");
-    //       }
-    //       throw error;
-    //     }
-    //   };
-
-    //   // Extract base64 images from instructions
-    //   const extractImagesFromInstructions = (instructions: string) => {
-    //     const imageRegex = /<img[^>]+src="data:image\/[^;]+;base64,([^"]+)"/g;
-    //     let match;
-    //     const images: { imgTag: string, base64: string, contentType: string }[] = [];
-
-    //     while ((match = imageRegex.exec(instructions)) !== null) {
-    //       const imgTag = match[0]; // Full <img> tag
-    //       const base64 = match[1]; // Base64 part
-
-    //       const contentTypeMatch = imgTag.match(/^data:(image\/[^;]+);base64,/);
-    //       const contentType = contentTypeMatch ? contentTypeMatch[1] : 'image/png'; // Default to PNG
-
-    //       images.push({ imgTag, base64, contentType });
-    //     }
-
-    //     return images;
-    //   };
-
-    //   // Save images to Google Cloud Storage and return URLs
-    //   const saveImagesAndGetUrls = async (images: { base64: string, contentType: string; }[]) => {
-    //     // console.log("Images: ", images);
-    //     const imageUrls = await Promise.all(
-    //       images.map(async ({ base64, contentType }, index) => {
-    //         try {
-    //           const result = base64ToBuffer(base64, contentType);
-
-    //           if (!result || !result.buffer || !result.contentType) {
-    //             throw new Error(`Invalid result from base64ToBuffer for image ${index}`);
-    //           }
-    //           const { buffer, contentType: type } = base64ToBuffer(base64, contentType);
-    //           const fileName = `image-${Date.now()}-${index}.${contentType.split('/')[1]}`;
-    //           const file = storage.bucket(bucket.name).file(fileName);
-
-    //           await file.save(buffer, { contentType: type });
-    //           console.log("inside: ", `https://storage.cloud.google.com/${bucket.name}/${fileName}`);
-    //           return `https://storage.cloud.google.com/${bucket.name}/${fileName}`;
-    //         } catch (error) {
-    //           if (error instanceof Error) {
-    //             console.error(`Error saving image ${index}:`, error.message);
-    //             throw error;
-    //           } else {
-    //             console.error("An unknown error occurred in saveImagesAndGetUrls.");
-    //           }
-    //         }
-    //       })
-    //     );
-    //     return imageUrls.filter((url): url is string => url !== undefined); // Filter out undefined values
-    //   };
-
-    //   try {
-    //     const totalAmount = numberOfPages * 20;
-    //     const depositAmount = (numberOfPages * 20) * 0.5
-
-    //     // Process images
-    //     const images = extractImagesFromInstructions(instructions);
-    //     const imageUrls = await saveImagesAndGetUrls(images);
-
-    //     // Replace base64 image sources with URLs in instructions
-    //     let updatedInstructions = instructions;
-
-    //     images.forEach(({ imgTag, base64, contentType }, index) => {
-    //       // const src = `data:${contentType};base64,${base64}`;
-    //       const imageUrl = imageUrls[index];
-    //       // console.log(`Replacing ${imgTag} with new img tag`);
-
-    //       // fs.writeFile('Output.txt', updatedInstructions, (err) => {
-
-    //       //   // In case of a error throw err. 
-    //       //   if (err) throw err;
-    //       // })
-
-    //       if (imageUrl) {
-    //         const newImgTag = `<img src="${imageUrl}" alt="Image ${index}"`;
-    //         // Replace the old <img> tag with the new one
-    //         updatedInstructions = updatedInstructions.replace(imgTag, newImgTag);
-    //       } else {
-    //         console.warn(`No URL found for image index ${index}`);
-    //       }
-    //     });
-
-    //     console.log(uploadedFiles);
-    //     const order = await context.prisma.order.create({
-    //       data: {
-    //         studentId,
-    //         instructions: updatedInstructions,
-    //         paperType,
-    //         numberOfPages,
-    //         dueDate,
-    //         totalAmount,
-    //         depositAmount,
-    //         status: "PENDING",
-    //         uploadedFiles: {
-    //           create: uploadedFiles.length > 0
-    //             ? uploadedFiles.map((file) => ({
-    //               url: file.url,
-    //               name: file.name,
-    //               size: file.size,
-    //               type: file.type
-    //             }))
-    //             : [],
-    //         }
-    //       },
-    //       include: {
-    //         uploadedFiles: true, // Include uploadedFiles in the response
-    //       },
-    //     });
-
-    //     return {
-    //       success: true,
-    //       message: "Order created successfully.",
-    //       order,
-    //     };
-    //   }
-    //   catch (error) {
-    //     console.error("Error occurred while creating the order:", error)
-    //     return {
-    //       success: false,
-    //       message: "An error occurred while creating the order.",
-    //       order: null,
-    //     };
-
-    //   }
-    // },
 
     createOrder: async (
       _: unknown,
@@ -506,7 +341,7 @@ const resolvers = {
             depositAmount: (numberOfPages * 20) * 0.5,
             status: "PENDING",
             uploadedFiles: {
-              create: uploadedFiles.map((file) => ({
+              create: uploadedFiles.map((file: { name: string; size: string; url: string; type: string; }) => ({
                 url: file.url,
                 name: file.name,
                 size: file.size,

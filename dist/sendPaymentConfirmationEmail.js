@@ -1,13 +1,7 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendPaymentConfirmationEmail = sendPaymentConfirmationEmail;
-const node_mailjet_1 = __importDefault(require("node-mailjet"));
-const client_1 = require("@prisma/client");
-const mailjet = node_mailjet_1.default.apiConnect(process.env.MAILJET_API_KEY, process.env.MAILJET_SECRET_KEY);
-const prisma = new client_1.PrismaClient();
+import Mailjet from 'node-mailjet';
+import { PrismaClient } from '@prisma/client';
+const mailjet = Mailjet.apiConnect(process.env.MAILJET_API_KEY, process.env.MAILJET_SECRET_KEY);
+const prisma = new PrismaClient();
 async function sendPaymentConfirmationEmail(customerEmail, orderId) {
     try {
         // Fetch order details from the database
@@ -62,3 +56,4 @@ async function sendPaymentConfirmationEmail(customerEmail, orderId) {
         throw new Error('Failed to send payment confirmation email');
     }
 }
+export { sendPaymentConfirmationEmail };

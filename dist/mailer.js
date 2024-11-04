@@ -1,5 +1,5 @@
-"use strict";
 // import nodemailer from 'nodemailer';
+export {};
 // export const sendVerificationEmail = async (email: string, token: string): Promise<void> => {
 //   const baseUrl = process.env.BASE_URL || "https://anydayessay.com"
 //   const verificationLink = `${baseUrl}/verify-email?token=${token}`;

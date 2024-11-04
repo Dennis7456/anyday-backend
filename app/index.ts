@@ -8,25 +8,27 @@ import fastifyMulter from 'fastify-multer';
 import fastifyMultipart from '@fastify/multipart';
 // import cookiePlugin from 'fastify-cookie';
 import cors from '@fastify/cors';
+import { Readable } from 'stream';
 import {
   getGraphQLParameters,
   processRequest,
   renderGraphiQL,
   Request,
+  Headers,
   sendResult,
   shouldRenderGraphiQL,
 } from 'graphql-helix';
 import { graphql } from 'graphql';
 import { GraphQLClient, gql } from 'graphql-request';
-import { schema } from './schema';
-import { contextFactory } from './context';
-import Client from './redisClient';
-import redisClient from './redisClient';
+import { schema } from './schema.ts';
+import { contextFactory } from './context.ts';
+import Client from './redisClient.ts';
+import redisClient from './redisClient.ts';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import fastifyStatic from '@fastify/static';
-import { sendPaymentConfirmationEmail } from './sendPaymentConfirmationEmail';
+import { sendPaymentConfirmationEmail } from './sendPaymentConfirmationEmail.ts';
 
 dotenv.config();
 
@@ -58,6 +60,12 @@ interface VerifyEmailResponse {
     redirectUrl?: string;
     token: string;
   };
+}
+
+interface MinimalRequest {
+  headers: Headers;
+  method: string;
+  body: ReadableStream<Uint8Array> | null;
 }
 
 // Define the createPayment and updateOrderStatus mutations
@@ -130,38 +138,32 @@ async function app() {
   //   reply.status(204).send();
   // });
 
+
+  // GraphQL Endpoint
   // GraphQL Endpoint
   server.route({
     method: ['POST', 'GET'],
     url: '/graphql',
     handler: async (req, resp) => {
-      const request: Request = {
-        headers: req.headers,
-        method: req.method,
-        query: req.query,
-        body: req.body,
-      };
-
-      // resp.header('Access-Control-Allow-Origin', process.env.BASE_URL || 'https://anyday-frontend.web.app');
-
-      // console.log('GraphQL Request:', {
-      //   headers: request.headers,
-      //   method: request.method,
-      //   query: request.query,
-      //   body: request.body,
-      // });
-
-      if (shouldRenderGraphiQL(request)) {
-        resp.header('Content-Type', 'text/html');
-        resp.send(
-          renderGraphiQL({
-            endpoint: '/graphql',
-          })
-        );
-        return;
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (Array.isArray(value)) {
+          value.forEach((v) => headers.append(key, v));
+        } else if (value !== undefined) {
+          headers.append(key, value);
+        }
       }
 
-      const { operationName, query, variables } = getGraphQLParameters(request);
+      // Convert req.body to a readable stream if it isn't one already
+      const body = req.body instanceof Readable ? req.body : Readable.from([req.body]);
+
+      const request = {
+        headers,
+        method: req.method as string,
+        body: req.body as unknown as ReadableStream<Uint8Array> | null,
+      } as MinimalRequest;
+
+      const { operationName, query, variables } = getGraphQLParameters(request as Partial<Request>)
 
       const result = await processRequest({
         request,
@@ -169,20 +171,18 @@ async function app() {
         operationName,
         contextFactory: () => contextFactory(req),
         query,
-        variables,
+        variables
       });
 
       if (result.type === "RESPONSE") {
-        result.headers.forEach(({ name, value }) => {
+        result.headers.forEach(({ name, value }: { name: string; value: string }) => {
           resp.header(name, value);
         });
         resp.status(result.status);
         resp.serialize(result.payload);
         resp.send(result.payload);
-        // console.log(resp);
       } else {
         sendResult(result, resp.raw);
-        // console.log(result, resp.raw)
       }
     },
   });

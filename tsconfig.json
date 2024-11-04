@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2019", // Specify ECMAScript target version
-    "module": "commonjs", // Specify module code generation
+    "module": "CommonJS", // Specify module code generation
+    // "moduleResolution": "Node16",
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
+    "declaration": true,
     "rootDir": "./app", // Root directory of your TypeScript files
     "outDir": "./dist", // Directory where the compiled JavaScript files will go
     "strict": true, // Enable all strict type-checking options

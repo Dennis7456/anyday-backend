@@ -1,6 +1,6 @@
 import { PrismaClient, User } from '@prisma/client';
 import { FastifyRequest } from 'fastify';
-import authenticateUser from './auth';
+import authenticateUser from './auth.js';
 
 const prisma = new PrismaClient();
 

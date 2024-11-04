@@ -1,13 +1,7 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendOrderSuccessEmail = void 0;
-const node_mailjet_1 = __importDefault(require("node-mailjet"));
+import Mailjet from 'node-mailjet';
 // Initialize Mailjet client with your API keys
-const mailjet = node_mailjet_1.default.apiConnect(process.env.MAILJET_API_KEY, process.env.MAILJET_SECRET_KEY);
-const sendOrderSuccessEmail = async (to, instructions, paperType, numberOfPages, dueDate, totalAmount, depositAmount, status, uploadedFiles) => {
+const mailjet = Mailjet.apiConnect(process.env.MAILJET_API_KEY, process.env.MAILJET_SECRET_KEY);
+export const sendOrderSuccessEmail = async (to, instructions, paperType, numberOfPages, dueDate, totalAmount, depositAmount, status, uploadedFiles) => {
     // Create a string representation of the uploaded files
     const uploadedFilesList = uploadedFiles
         .map((file) => `<li><a href="${file.url}">${file.name}</a></li>`)
@@ -69,4 +63,3 @@ const sendOrderSuccessEmail = async (to, instructions, paperType, numberOfPages,
         throw new Error('Failed to send order success email');
     }
 };
-exports.sendOrderSuccessEmail = sendOrderSuccessEmail;
