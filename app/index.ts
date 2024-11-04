@@ -17,6 +17,7 @@ import {
   shouldRenderGraphiQL,
 } from 'graphql-helix';
 import { graphql } from 'graphql';
+import { GraphQLClient, gql } from 'graphql-request';
 import { schema } from './schema';
 import { contextFactory } from './context';
 import Client from './redisClient';
@@ -25,10 +26,18 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import fastifyStatic from '@fastify/static';
+import { sendPaymentConfirmationEmail } from './sendPaymentConfirmationEmail';
 
 dotenv.config();
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+// GraphQL client for calling mutations
+const graphQLClient = new GraphQLClient(process.env.GRAPHQL_API_URL as string, {
+  headers: {
+    Authorization: `Bearer ${process.env.GRAPHQL_API_TOKEN}`, // Use an authorization token if needed
+  },
+});
 
 if (!stripeSecretKey) {
   throw new Error("STRIPE_SECRET_KEY environment variable is not set.");
@@ -50,6 +59,26 @@ interface VerifyEmailResponse {
     token: string;
   };
 }
+
+// Define the createPayment and updateOrderStatus mutations
+const CREATE_PAYMENT_MUTATION = gql`
+  mutation CreatePayment($orderId: String!, $amount: Float!, $paymentStatus: PaymentStatus!, $transactionId: String!) {
+    createPayment(orderId: $orderId, amount: $amount, paymentStatus: $paymentStatus, transactionId: $transactionId) {
+      id
+      amount
+      paymentStatus
+    }
+  }
+`;
+
+const UPDATE_ORDER_STATUS_MUTATION = gql`
+  mutation UpdateOrderStatus($orderId: String!, $status: OrderStatus!) {
+    updateOrderStatus(orderId: $orderId, status: $status) {
+      id
+      status
+    }
+  }
+`;
 
 // Initialize Google Cloud Storage
 export const storage = new Storage();
@@ -91,13 +120,8 @@ async function app() {
     prefix: '/uploads/'
   })
 
-  //  // Register fastify-static plugin
-  // server.register(fastifyStatic, {
-  //   root: path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads'),
-  //   prefix: '/uploads/', // The URL prefix for serving files
-  // });
-
   const upload = fastifyMulter({ dest: localUploadDir });
+
 
   const port = Number(process.env.PORT) || 8080;
 
@@ -366,8 +390,6 @@ async function app() {
   });
 
 
-
-
   // List Files Endpoint
   server.get('/api/files', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -410,7 +432,6 @@ async function app() {
     }
   });
 
- 
 
   // Route to access uploaded files
   server.get('/uploads/:filename', async (req, reply) => {
@@ -432,68 +453,124 @@ async function app() {
     }
   });
 
-// Define the type for the request body
-interface CreateSessionRequestBody {
-  orderId: string;
-  amount: number;
-  paymentType: 'deposit' | 'full';
-}
+  // Define the type for the request body
+  interface CreateSessionRequestBody {
+    orderId: string;
+    amount: number;
+    paymentType: 'deposit' | 'full';
+  }
   // Route to create a payment session
-server.post('/api/payment/create-session', async (req: FastifyRequest<{ Body: CreateSessionRequestBody }>, reply: FastifyReply
+  server.post('/api/payment/create-session', async (req: FastifyRequest<{ Body: CreateSessionRequestBody }>, reply: FastifyReply
   ) => {
-  const { orderId, amount, paymentType } = req.body; // `amount` is in cents
+    const { orderId, amount, paymentType } = req.body; // `amount` is in cents
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: [
-        'card',
-        'alipay',
-        // 'wechat_pay',
-        'cashapp',
-        'link'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Order Payment - ${paymentType === 'deposit' ? 'Deposit' : 'Full Amount'}`,
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: [
+          'card',
+          'alipay',
+          // 'wechat_pay',
+          'cashapp',
+          'link'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `Order Payment - ${paymentType === 'deposit' ? 'Deposit' : 'Full Amount'}`,
+              },
+              unit_amount: amount, // Amount in cents
             },
-            unit_amount: amount, // Amount in cents
+            quantity: 1,
           },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${process.env.BASE_URL}/payment-success?orderId=${orderId}`,
-      cancel_url: `${process.env.BASE_URL}/payment-cancel?orderId=${orderId}`,
-    });
+        ],
+        mode: 'payment',
+        success_url: `${process.env.BASE_URL}/payment-success?orderId=${orderId}`,
+        cancel_url: `${process.env.BASE_URL}/payment-cancel?orderId=${orderId}`,
+      });
 
-    reply.send({ url: session.url });
-  } catch (error) {
-    console.error('Stripe Session Error:', error);
-    reply.status(500).send('Error creating payment session');
-  }
-});
-
-app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), (req, res) => {
-  const sig = req.headers['stripe-signature'];
-
-  try {
-    const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      // Update order status in your database based on session details
-      updateOrderStatus(session.client_reference_id, 'IN_PROGRESS');
-      sendConfirmationEmail(session.customer_email);
+      reply.send({ url: session.url });
+    } catch (error) {
+      console.error('Stripe Session Error:', error);
+      reply.status(500).send('Error creating payment session');
     }
+  });
 
-    res.json({ received: true });
-  } catch (error) {
-    console.error('Webhook error:', error);
-    res.status(400).send(`Webhook error: ${error.message}`);
+  // Middleware to parse the raw body for Stripe's webhook
+  server.addHook('preParsing', (request, reply, payload, done) => {
+    if (request.raw.url === '/webhooks/stripe' && request.headers['stripe-signature']) {
+      let rawData = '';
+      payload.on('data', (chunk) => {
+        rawData += chunk;
+      });
+      payload.on('end', () => {
+        request.rawBody = Buffer.from(rawData); // Set rawBody
+        done(null, payload); // Pass the original payload
+      });
+    } else {
+      done(null, payload);
+    }
+  });
+
+
+  // Stripe webhook handler
+  // Stripe webhook handler
+  server.post('/webhooks/stripe', async (request: FastifyRequest, reply: FastifyReply) => {
+    const sig = request.headers['stripe-signature'] as string;
+
+    try {
+      const event = stripe.webhooks.constructEvent(
+        request.rawBody as Buffer,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET || ''
+      );
+
+      if (event.type === 'checkout.session.completed') {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const orderId = session.client_reference_id || '';
+        const customerEmail = session.customer_email || '';
+        const transactionId = session.id;
+        const amount = session.amount_total || 0;
+
+        console.log('Session details:', { orderId, customerEmail, transactionId, amount });
+
+        // Call createPayment mutation
+        await graphQLClient.request(CREATE_PAYMENT_MUTATION, {
+          orderId,
+          amount,
+          paymentStatus: 'COMPLETED',
+          transactionId,
+        });
+
+        // Call updateOrderStatus mutation
+        await graphQLClient.request(UPDATE_ORDER_STATUS_MUTATION, {
+          orderId,
+          status: 'IN_PROGRESS',
+        });
+
+        // Send confirmation email after successfully creating the payment and updating order status
+        await sendPaymentConfirmationEmail(customerEmail, orderId); // Move this line inside the if block
+      }
+
+      reply.send({ received: true });
+    } catch (error) {
+      console.error('Webhook error:', error);
+      reply.status(400).send(`Webhook error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+
+  // Define your updateOrderStatus and sendConfirmationEmail functions
+  async function updateOrderStatus(orderId: string, status: string) {
+    // Update the order in your database based on orderId
+    console.log(`Updating order ${orderId} to status ${status}`);
   }
-});
+
+  // async function sendPaymentConfirmationEmail(email: string) {
+  //   // Send a confirmation email to the customer
+  //   console.log(`Sending confirmation email to ${email}`);
+  // }
+
 
   //Server listening
   server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
