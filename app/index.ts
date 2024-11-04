@@ -19,7 +19,7 @@ import {
   shouldRenderGraphiQL,
 } from 'graphql-helix';
 import { graphql } from 'graphql';
-import { GraphQLClient, gql } from 'graphql-request';
+import { gql } from 'graphql-request';
 import { schema } from './schema.ts';
 import { contextFactory } from './context.ts';
 import Client from './redisClient.ts';
@@ -34,12 +34,31 @@ dotenv.config();
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
+// Declare graphQLClient as a let variable to allow reassignment
+let graphQLClient: import('graphql-request').GraphQLClient;
+
 // GraphQL client for calling mutations
-const graphQLClient = new GraphQLClient(process.env.GRAPHQL_API_URL as string, {
-  headers: {
-    Authorization: `Bearer ${process.env.GRAPHQL_API_TOKEN}`, // Use an authorization token if needed
-  },
+let GraphQLClient: typeof import('graphql-request').GraphQLClient;
+
+async function initialize() {
+  // Dynamically import GraphQLClient from 'graphql-request'
+  const { GraphQLClient: ImportedGraphQLClient } = await import('graphql-request');
+  GraphQLClient = ImportedGraphQLClient;
+
+  // Initialize graphQLClient
+  graphQLClient = new GraphQLClient(process.env.GRAPHQL_API_URL as string, {
+    headers: {
+      Authorization: `Bearer ${process.env.GRAPHQL_API_TOKEN}`,
+    },
+  });
+}
+
+// Call initialize early in your application
+initialize().then(() => {
+  // Now you can use graphQLClient for any GraphQL requests
+  console.log('GraphQL Client initialized');
 });
+
 
 if (!stripeSecretKey) {
   throw new Error("STRIPE_SECRET_KEY environment variable is not set.");
@@ -66,6 +85,7 @@ interface MinimalRequest {
   headers: Headers;
   method: string;
   body: ReadableStream<Uint8Array> | null;
+  query: string;
 }
 
 // Define the createPayment and updateOrderStatus mutations
@@ -139,8 +159,6 @@ async function app() {
   // });
 
 
-  // GraphQL Endpoint
-  // GraphQL Endpoint
   server.route({
     method: ['POST', 'GET'],
     url: '/graphql',
@@ -154,33 +172,46 @@ async function app() {
         }
       }
 
-      // Convert req.body to a readable stream if it isn't one already
-      const body = req.body instanceof Readable ? req.body : Readable.from([req.body]);
+      // Helper function to convert Node.js Readable to ReadableStream<Uint8Array>
+      function convertNodeReadableToWebReadable(readable: Readable): ReadableStream<Uint8Array> {
+        return new ReadableStream<Uint8Array>({
+          start(controller) {
+            readable.on('data', (chunk) => controller.enqueue(new Uint8Array(chunk)));
+            readable.on('end', () => controller.close());
+            readable.on('error', (err) => controller.error(err));
+          },
+          cancel() {
+            readable.destroy();
+          }
+        });
+      }
 
-      const request = {
+      const body = req.body instanceof Readable ? convertNodeReadableToWebReadable(req.body) : null;
+
+      const request: MinimalRequest = {
         headers,
         method: req.method as string,
-        body: req.body as unknown as ReadableStream<Uint8Array> | null,
-      } as MinimalRequest;
+        body: body as ReadableStream<Uint8Array>,
+        query: typeof req.body === 'string' ? req.body : '',
 
-      const { operationName, query, variables } = getGraphQLParameters(request as Partial<Request>)
+      };
+
+      const { operationName, query, variables } = getGraphQLParameters(request);
 
       const result = await processRequest({
-        request,
+        request: { headers, method: req.method, body, query },
         schema,
         operationName,
         contextFactory: () => contextFactory(req),
         query,
-        variables
+        variables,
       });
 
       if (result.type === "RESPONSE") {
         result.headers.forEach(({ name, value }: { name: string; value: string }) => {
           resp.header(name, value);
         });
-        resp.status(result.status);
-        resp.serialize(result.payload);
-        resp.send(result.payload);
+        resp.status(result.status).send(result.payload);
       } else {
         sendResult(result, resp.raw);
       }
@@ -534,19 +565,23 @@ async function app() {
 
         console.log('Session details:', { orderId, customerEmail, transactionId, amount });
 
-        // Call createPayment mutation
-        await graphQLClient.request(CREATE_PAYMENT_MUTATION, {
-          orderId,
-          amount,
-          paymentStatus: 'COMPLETED',
-          transactionId,
-        });
+        if (graphQLClient) {
+          // Call createPayment mutation
+          await graphQLClient.request(CREATE_PAYMENT_MUTATION, {
+            orderId,
+            amount,
+            paymentStatus: 'COMPLETED',
+            transactionId,
+          });
 
-        // Call updateOrderStatus mutation
-        await graphQLClient.request(UPDATE_ORDER_STATUS_MUTATION, {
-          orderId,
-          status: 'IN_PROGRESS',
-        });
+          // Call updateOrderStatus mutation
+          await graphQLClient.request(UPDATE_ORDER_STATUS_MUTATION, {
+            orderId,
+            status: 'IN_PROGRESS',
+          });
+        } else {
+          console.error('GraphQL Client not initialized');
+        }
 
         // Send confirmation email after successfully creating the payment and updating order status
         await sendPaymentConfirmationEmail(customerEmail, orderId); // Move this line inside the if block

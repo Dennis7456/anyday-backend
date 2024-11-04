@@ -1,20 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2019", // Specify ECMAScript target version
-    "module": "CommonJS", // Specify module code generation
-    // "moduleResolution": "Node16",
+    "target": "ES2020",
+    "module": "CommonJS",
     "allowImportingTsExtensions": true,
     "emitDeclarationOnly": true,
     "declaration": true,
-    "rootDir": "./app", // Root directory of your TypeScript files
-    "outDir": "./dist", // Directory where the compiled JavaScript files will go
-    "strict": true, // Enable all strict type-checking options
-    "lib":["ES2021", "DOM"],
-    "esModuleInterop": true, // Enables interoperability between CommonJS and ES Modules
-    "skipLibCheck": true, // Skip type checking of declaration files
-    "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file
-    "typeRoots": ["./node_modules/@types", "./types"] // Specify type declaration files locations
+    "rootDir": "./app",
+    "outDir": "./dist",
+    "strict": true,
+    "lib": ["ES2021", "DOM"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "baseUrl": ".",
+    "paths": {
+      "@prisma/client": ["node_modules/@prisma/client"]
+    }
   },
-  "include": ["app/**/*.ts", "types/**/*.d.ts", "schema.graphql"], // Include all TypeScript files in the app and types directories
-  "exclude": ["node_modules", "dist"] // Exclude node_modules and dist directories
+  "include": ["app/**/*.ts", "types/**/*.d.ts", "schema.graphql"],
+  "exclude": ["node_modules", "dist"]
 }
+
+
