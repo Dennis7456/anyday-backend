@@ -12,7 +12,7 @@ jobs:
     env:
       GAR_LOCATION: "us-central1"
       PROJECT_ID: "anyday-essay"  # replace with your actual project ID
-      REPO_NAME: "anyday-essay-fastify-app:latest"
+      REPO_NAME: "anyday-essay"
 
     steps:
       - name: Checkout code
