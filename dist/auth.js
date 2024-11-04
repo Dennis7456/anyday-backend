@@ -12,7 +12,7 @@ async function authenticateUser(prisma, request) {
             if (tokenPayload && tokenPayload.userId) {
                 return await prisma.user.findUnique({
                     where: {
-                        id: tokenPayload.userId,
+                        id: tokenPayload.userId.toString(),
                     }
                 });
             }

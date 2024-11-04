@@ -14,8 +14,8 @@ const sendVerificationEmail = async (to, verificationToken) => {
         Messages: [
             {
                 From: {
-                    Email: "charlottewritesessays@gmail.com",
-                    Name: 'AnyDayEssay'
+                    Email: "support@anydayessay.com",
+                    Name: 'Any Day Essay Support'
                 },
                 To: [
                     {

@@ -15,11 +15,12 @@ const uuid_1 = require("uuid");
 const redisClient_1 = __importDefault(require("./redisClient"));
 // import { sendVerificationEmail } from './sendVerificationEmail';
 const sendVerificationEmail_1 = require("./sendVerificationEmail");
+const sendOrderSuccessEmail_1 = require("./sendOrderSuccessEmail");
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
 const baseUrl = process.env.BASE_URL || "https://anyday-frontend.web.app";
 const users = [
     {
-        id: 1,
+        id: "1",
         firstName: 'John',
         lastName: 'Doe',
         userName: 'johndoe23',
@@ -32,7 +33,7 @@ const users = [
         updatedAt: new Date(),
     },
     {
-        id: 2,
+        id: "2",
         firstName: 'Jane',
         lastName: 'Doe',
         userName: 'janedoe23',
@@ -62,10 +63,15 @@ const resolvers = {
             return context.currentUser;
         },
         orders: async (_, __, context) => {
-            // if (!context.currentUser) {
-            //   throw new Error('Authentication required');
-            // }
-            return context.prisma.order.findMany();
+            if (!context.currentUser) {
+                throw new Error('Authentication required');
+            }
+            return context.prisma.order.findMany({
+                where: { studentId: context.currentUser.id },
+                include: {
+                    uploadedFiles: true
+                }
+            });
         },
         order: async (_, { id }, context) => {
             // if (!context.currentUser) {
@@ -77,6 +83,24 @@ const resolvers = {
         },
     },
     Mutation: {
+        updateOrderStatus: async (_, { orderId, status }, context) => {
+            try {
+                //Update order status in the database
+                const updatedOrder = await context.prisma.order.update({
+                    where: { id: String(orderId) },
+                    data: { status },
+                });
+                return updatedOrder;
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    console.error('Error updating order status:', error.message);
+                }
+                else {
+                    console.error('Unexpected error', error);
+                }
+            }
+        },
         registerAndCreateOrder: async (_, 
         // { email, paperType, pages, dueDate
         { input }) => {
@@ -301,6 +325,12 @@ const resolvers = {
         // },
         createOrder: async (_, { input }, context) => {
             const { studentId, instructions, paperType, numberOfPages, dueDate, uploadedFiles } = input;
+            const studentExists = await context.prisma.user.findUnique({
+                where: { id: studentId.toString() },
+            });
+            if (!studentExists) {
+                throw new Error("Student not found");
+            }
             if (!instructions || !paperType || !numberOfPages || !dueDate) {
                 console.error("Validation error: Missing required fields.");
                 return {
@@ -392,7 +422,7 @@ const resolvers = {
                 // Create the order
                 const order = await context.prisma.order.create({
                     data: {
-                        studentId,
+                        studentId: studentId.toString(),
                         instructions: updatedInstructions,
                         paperType,
                         numberOfPages,
@@ -413,9 +443,16 @@ const resolvers = {
                         uploadedFiles: true, // Include uploadedFiles in the response
                     },
                 });
+                // If the order creation is successful, send the email
+                const student = await context.prisma.user.findUnique({
+                    where: { id: studentId.toString() },
+                });
+                if (student && student.email) {
+                    (0, sendOrderSuccessEmail_1.sendOrderSuccessEmail)(student.email, order.instructions, order.paperType, order.numberOfPages, order.dueDate, order.totalAmount, order.depositAmount, order.status, order.uploadedFiles);
+                }
                 return {
                     success: true,
-                    message: "Order created successfully.",
+                    message: "Order created successfully. A confirmation email has been sent.",
                     order,
                 };
             }
