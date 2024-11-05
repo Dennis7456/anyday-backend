@@ -1,9 +1,9 @@
 type Query {
   users: [User!]!
-  user(id: Int!): User
+  user(id: String!): User
   loggedInUser: User
   orders: [Order!]!
-  order(id: Int!): Order
+  order(id: String!): Order
 }
 
 type Mutation {
@@ -29,21 +29,23 @@ type Mutation {
   login(email: String!, password: String!): AuthPayload!
 
   createPayment(
-    orderId: Int!
+    orderId: String!
     amount: Float!
     paymentStatus: PaymentStatus!
     transactionId: String
   ): Payment!
 
   createReview(
-    orderId: Int!
-    qaId: Int!
-    writerId: Int!
+    orderId: String!
+    qaId: String!
+    writerId: String!
     comments: String
     rating: Int!
   ): Review!
 
-  createAssignment(orderId: Int!, writerId: Int!): Assignment!
+  createAssignment(orderId: String!, writerId: Int!): Assignment!
+
+  updateOrderStatus(orderId: String!, status: String!): Order
   
 }
 
@@ -71,7 +73,7 @@ input CreateStudentInput {
   }
 
 input CreateOrderInput {
-  studentId: Int!
+  studentId: String!
   instructions: String!
   paperType: String!
   numberOfPages: Int!
@@ -79,12 +81,12 @@ input CreateOrderInput {
   uploadedFiles: [FileValueInput!]!
   }
 input AttachFilesInput {
-  orderId: ID!
+  orderId: String!
   fileUrls: [String!]!
 }
 
 input FileValueInput {
-  id: ID!
+  id: String!
   url: String!
   name: String!
   size: String!
@@ -111,7 +113,7 @@ order: Order!
 }
 
 type User {
-  id: Int!
+  id: String!
   firstName: String!
   lastName: String!
   userName: String!
@@ -129,8 +131,8 @@ type User {
 }
 
 type Order {
-  id: ID!
-  studentId: Int!
+  id: String!
+  studentId: String!
   student: User!
   instructions: String!
   paperType: String!
@@ -139,11 +141,12 @@ type Order {
   uploadedFiles: [FileValue!]!
   totalAmount: Int!
   depositAmount: Int!
+  status: OrderStatus!
 }
 
 type Payment {
-  id: Int!
-  orderId: Int!
+  id: String!
+  orderId: String!
   amount: Float!
   paymentStatus: PaymentStatus!
   transactionId: String
@@ -152,8 +155,8 @@ type Payment {
 }
 
 type Review {
-  id: Int!
-  orderId: Int!
+  id: String!
+  orderId: String!
   qa: User!
   writer: User!
   comments: String
@@ -165,8 +168,8 @@ type Review {
 }
 
 type Assignment {
-  id: Int!
-  orderId: Int!
+  id: String!
+  orderId: String!
   writer: User!
   assignedAt: String!
   completedAt: String
@@ -180,7 +183,7 @@ type AuthPayload {
 }
 
 type FileValue {
-id: Int!
+id: String!
 url: String!
 name: String!
 size: String!
