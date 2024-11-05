@@ -1,20 +1,20 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import { GraphQLContext } from './context.ts';
+import { GraphQLContext } from './context';
 import typeDefs from './schema.graphql';
 import { User, Order, Payment, Review, Assignment, Role, PaymentStatus } from '@prisma/client';
 import { compare, hash } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
-import { bucket, storage } from './index.ts';
-import { APP_SECRET } from './auth.ts';
+import { bucket, storage } from './index';
+import { APP_SECRET } from './auth';
 import { v4 as uuidv4 } from 'uuid';
-import redisClient from './redisClient.ts';
+import redisClient from './redisClient';
 import { isEmail } from 'validator';
 import { emit } from 'process';
 import fs from 'fs';
 // import { sendVerificationEmail } from './sendVerificationEmail';
-import { sendVerificationEmail } from './sendVerificationEmail.ts';
-import { sendOrderSuccessEmail } from './sendOrderSuccessEmail.ts';
-import { RegisterOrderInput, RegisterOrderResponse, CreateStudentInput, CreateOrderInput, AttachFilesInput } from './types.ts'
+import { sendVerificationEmail } from './sendVerificationEmail';
+import { sendOrderSuccessEmail } from './sendOrderSuccessEmail';
+import { RegisterOrderInput, RegisterOrderResponse, CreateStudentInput, CreateOrderInput, AttachFilesInput } from './types'
 import { OrderStatus } from '.prisma/client';
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration

@@ -20,15 +20,15 @@ import {
 } from 'graphql-helix';
 import { graphql, GraphQLError } from 'graphql';
 import { gql } from 'graphql-request';
-import { schema } from './schema.ts';
-import { contextFactory } from './context.ts';
-import Client from './redisClient.ts';
-import redisClient from './redisClient.ts';
+import { schema } from './schema';
+import { contextFactory } from './context';
+import Client from './redisClient';
+import redisClient from './redisClient';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import fastifyStatic from '@fastify/static';
-import { sendPaymentConfirmationEmail } from './sendPaymentConfirmationEmail.ts';
+import { sendPaymentConfirmationEmail } from './sendPaymentConfirmationEmail';
 
 dotenv.config();
 

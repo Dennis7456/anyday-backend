@@ -1,4 +1,27 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -13,6 +36,7 @@ const fastify_multer_1 = __importDefault(require("fastify-multer"));
 const multipart_1 = __importDefault(require("@fastify/multipart"));
 // import cookiePlugin from 'fastify-cookie';
 const cors_1 = __importDefault(require("@fastify/cors"));
+const stream_1 = require("stream");
 const graphql_helix_1 = require("graphql-helix");
 const graphql_1 = require("graphql");
 const graphql_request_1 = require("graphql-request");
@@ -26,11 +50,34 @@ const static_1 = __importDefault(require("@fastify/static"));
 const sendPaymentConfirmationEmail_1 = require("./sendPaymentConfirmationEmail");
 dotenv_1.default.config();
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+// Declare graphQLClient as a let variable to allow reassignment
+let graphQLClient;
 // GraphQL client for calling mutations
-const graphQLClient = new graphql_request_1.GraphQLClient(process.env.GRAPHQL_API_URL, {
-    headers: {
-        Authorization: `Bearer ${process.env.GRAPHQL_API_TOKEN}`, // Use an authorization token if needed
-    },
+let GraphQLClient;
+async function initialize() {
+    try {
+        // Dynamically import GraphQLClient from 'graphql-request'
+        const { GraphQLClient: ImportedGraphQLClient } = await Promise.resolve().then(() => __importStar(require('graphql-request')));
+        GraphQLClient = ImportedGraphQLClient;
+        // Initialize graphQLClient
+        graphQLClient = new GraphQLClient(process.env.GRAPHQL_API_URL, {
+            headers: {
+                Authorization: `Bearer ${process.env.GRAPHQL_API_TOKEN}`,
+            },
+        });
+        console.log('GraphQL Client initialized');
+    }
+    catch (error) {
+        console.error("Error initializing GraphQL client:", error instanceof Error ? error.message : error);
+    }
+}
+// Call initialize early in your application
+initialize().then(() => {
+    // Now you can use graphQLClient for any GraphQL requests
+    console.log('GraphQL Client initialized');
+}).catch((error) => {
+    console.error('Failed to initialize GraphQL Client:', error);
+    process.exit(1); // Exit if GraphQL client initialization fails
 });
 if (!stripeSecretKey) {
     throw new Error("STRIPE_SECRET_KEY environment variable is not set.");
@@ -91,34 +138,42 @@ async function app() {
     // server.options('*', (req, reply) => {
     //   reply.status(204).send();
     // });
-    // GraphQL Endpoint
     server.route({
         method: ['POST', 'GET'],
         url: '/graphql',
         handler: async (req, resp) => {
-            const request = {
-                headers: req.headers,
-                method: req.method,
-                query: req.query,
-                body: req.body,
-            };
-            // resp.header('Access-Control-Allow-Origin', process.env.BASE_URL || 'https://anyday-frontend.web.app');
-            // console.log('GraphQL Request:', {
-            //   headers: request.headers,
-            //   method: request.method,
-            //   query: request.query,
-            //   body: request.body,
-            // });
-            if ((0, graphql_helix_1.shouldRenderGraphiQL)(request)) {
-                resp.header('Content-Type', 'text/html');
-                resp.send((0, graphql_helix_1.renderGraphiQL)({
-                    endpoint: '/graphql',
-                }));
-                return;
+            const headers = new graphql_helix_1.Headers();
+            for (const [key, value] of Object.entries(req.headers)) {
+                if (Array.isArray(value)) {
+                    value.forEach((v) => headers.append(key, v));
+                }
+                else if (value !== undefined) {
+                    headers.append(key, value);
+                }
             }
+            // Helper function to convert Node.js Readable to ReadableStream<Uint8Array>
+            function convertNodeReadableToWebReadable(readable) {
+                return new ReadableStream({
+                    start(controller) {
+                        readable.on('data', (chunk) => controller.enqueue(new Uint8Array(chunk)));
+                        readable.on('end', () => controller.close());
+                        readable.on('error', (err) => controller.error(err));
+                    },
+                    cancel() {
+                        readable.destroy();
+                    }
+                });
+            }
+            const body = req.body instanceof stream_1.Readable ? convertNodeReadableToWebReadable(req.body) : null;
+            const request = {
+                headers,
+                method: req.method,
+                body: body,
+                query: typeof req.body === 'string' ? req.body : '',
+            };
             const { operationName, query, variables } = (0, graphql_helix_1.getGraphQLParameters)(request);
             const result = await (0, graphql_helix_1.processRequest)({
-                request,
+                request: { headers, method: req.method, body, query },
                 schema: schema_1.schema,
                 operationName,
                 contextFactory: () => (0, context_1.contextFactory)(req),
@@ -129,14 +184,10 @@ async function app() {
                 result.headers.forEach(({ name, value }) => {
                     resp.header(name, value);
                 });
-                resp.status(result.status);
-                resp.serialize(result.payload);
-                resp.send(result.payload);
-                // console.log(resp);
+                resp.status(result.status).send(result.payload);
             }
             else {
                 (0, graphql_helix_1.sendResult)(result, resp.raw);
-                // console.log(result, resp.raw)
             }
         },
     });
@@ -218,8 +269,7 @@ async function app() {
         method: 'POST',
         url: '/api/redis/user-data',
         handler: async (req, reply) => {
-            var _a;
-            const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1];
+            const token = req.headers.authorization?.split(' ')[1];
             // console.log(req.headers)
             if (!token) {
                 reply.status(401).send('Token is required');
@@ -305,7 +355,7 @@ async function app() {
                                 id: `${Date.now()}-${filename}`, // Generate an ID
                                 name: filename,
                                 url: publicUrl,
-                                size: fileSize === null || fileSize === void 0 ? void 0 : fileSize.toString(), // Ensure size is a string
+                                size: fileSize?.toString(), // Ensure size is a string
                                 type: mimetype,
                             };
                             console.log(`File uploaded successfully: ${publicUrl}`);
@@ -444,18 +494,27 @@ async function app() {
                 const transactionId = session.id;
                 const amount = session.amount_total || 0;
                 console.log('Session details:', { orderId, customerEmail, transactionId, amount });
-                // Call createPayment mutation
-                await graphQLClient.request(CREATE_PAYMENT_MUTATION, {
-                    orderId,
-                    amount,
-                    paymentStatus: 'COMPLETED',
-                    transactionId,
-                });
-                // Call updateOrderStatus mutation
-                await graphQLClient.request(UPDATE_ORDER_STATUS_MUTATION, {
-                    orderId,
-                    status: 'IN_PROGRESS',
-                });
+                if (graphQLClient) {
+                    try { // Call createPayment mutation
+                        await graphQLClient.request(CREATE_PAYMENT_MUTATION, {
+                            orderId,
+                            amount,
+                            paymentStatus: 'COMPLETED',
+                            transactionId,
+                        });
+                        // Call updateOrderStatus mutation
+                        await graphQLClient.request(UPDATE_ORDER_STATUS_MUTATION, {
+                            orderId,
+                            status: 'IN_PROGRESS',
+                        });
+                    }
+                    catch (GraphQLError) {
+                        console.error('GraphQL Client not initialized');
+                    }
+                }
+                else {
+                    console.error('GraphQL Client not initialized');
+                }
                 // Send confirmation email after successfully creating the payment and updating order status
                 await (0, sendPaymentConfirmationEmail_1.sendPaymentConfirmationEmail)(customerEmail, orderId); // Move this line inside the if block
             }
@@ -475,13 +534,17 @@ async function app() {
     //   // Send a confirmation email to the customer
     //   console.log(`Sending confirmation email to ${email}`);
     // }
-    //Server listening
-    server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
-        if (err) {
-            console.error(err);
-            process.exit(1);
-        }
+    try {
+        const address = await server.listen({ port: port, host: '0.0.0.0' });
         console.log(`Server listening at ${address}`);
-    });
+    }
+    catch (err) {
+        console.error('Error starting server:', err);
+        process.exit(1);
+    }
 }
-app();
+app().catch(error => {
+    console.error("Error in app initialization:", error instanceof Error ? error.message : error);
+    process.exit(1); // Optionally exit the process if initialization fails
+});
+;

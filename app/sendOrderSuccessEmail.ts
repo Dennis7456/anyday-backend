@@ -1,8 +1,8 @@
 import Mailjet from 'node-mailjet';
 
 const mailjetClient = Mailjet.apiConnect(
-  process.env.MJ_APIKEY_PUBLIC || '',
-  process.env.MJ_APIKEY_PRIVATE || ''
+  process.env.MAILJET_API_KEY || '',
+  process.env.MAILJET_SECRET_KEY || ''
 );
 
 export const sendOrderSuccessEmail = async (
