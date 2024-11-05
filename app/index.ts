@@ -18,7 +18,7 @@ import {
   sendResult,
   shouldRenderGraphiQL,
 } from 'graphql-helix';
-import { graphql } from 'graphql';
+import { graphql, GraphQLError } from 'graphql';
 import { gql } from 'graphql-request';
 import { schema } from './schema.ts';
 import { contextFactory } from './context.ts';
@@ -41,22 +41,32 @@ let graphQLClient: import('graphql-request').GraphQLClient;
 let GraphQLClient: typeof import('graphql-request').GraphQLClient;
 
 async function initialize() {
-  // Dynamically import GraphQLClient from 'graphql-request'
-  const { GraphQLClient: ImportedGraphQLClient } = await import('graphql-request');
-  GraphQLClient = ImportedGraphQLClient;
+  try {
+    // Dynamically import GraphQLClient from 'graphql-request'
+    const { GraphQLClient: ImportedGraphQLClient } = await import('graphql-request');
+    GraphQLClient = ImportedGraphQLClient;
 
-  // Initialize graphQLClient
-  graphQLClient = new GraphQLClient(process.env.GRAPHQL_API_URL as string, {
-    headers: {
-      Authorization: `Bearer ${process.env.GRAPHQL_API_TOKEN}`,
-    },
-  });
+    // Initialize graphQLClient
+    graphQLClient = new GraphQLClient(process.env.GRAPHQL_API_URL as string, {
+      headers: {
+        Authorization: `Bearer ${process.env.GRAPHQL_API_TOKEN}`,
+      },
+    });
+
+    console.log('GraphQL Client initialized');
+  } catch (error) {
+    console.error("Error initializing GraphQL client:", error instanceof Error ? error.message : error);
+  }
 }
+
 
 // Call initialize early in your application
 initialize().then(() => {
   // Now you can use graphQLClient for any GraphQL requests
   console.log('GraphQL Client initialized');
+}).catch((error) => {
+  console.error('Failed to initialize GraphQL Client:', error);
+  process.exit(1); // Exit if GraphQL client initialization fails
 });
 
 
@@ -566,23 +576,25 @@ async function app() {
         console.log('Session details:', { orderId, customerEmail, transactionId, amount });
 
         if (graphQLClient) {
-          // Call createPayment mutation
-          await graphQLClient.request(CREATE_PAYMENT_MUTATION, {
-            orderId,
-            amount,
-            paymentStatus: 'COMPLETED',
-            transactionId,
-          });
+          try {// Call createPayment mutation
+            await graphQLClient.request(CREATE_PAYMENT_MUTATION, {
+              orderId,
+              amount,
+              paymentStatus: 'COMPLETED',
+              transactionId,
+            });
 
-          // Call updateOrderStatus mutation
-          await graphQLClient.request(UPDATE_ORDER_STATUS_MUTATION, {
-            orderId,
-            status: 'IN_PROGRESS',
-          });
+            // Call updateOrderStatus mutation
+            await graphQLClient.request(UPDATE_ORDER_STATUS_MUTATION, {
+              orderId,
+              status: 'IN_PROGRESS',
+            });
+          } catch (GraphQLError) {
+            console.error('GraphQL Client not initialized');
+          }
         } else {
           console.error('GraphQL Client not initialized');
         }
-
         // Send confirmation email after successfully creating the payment and updating order status
         await sendPaymentConfirmationEmail(customerEmail, orderId); // Move this line inside the if block
       }
@@ -607,14 +619,17 @@ async function app() {
   // }
 
 
-  //Server listening
-  server.listen({ port: port, host: '0.0.0.0' }, (err, address) => {
-    if (err) {
-      console.error(err);
-      process.exit(1);
-    }
+  try {
+    const address = await server.listen({ port: port, host: '0.0.0.0' });
     console.log(`Server listening at ${address}`);
-  });
+  } catch (err) {
+    console.error('Error starting server:', err);
+    process.exit(1);
+  }
+
 }
 
-app();
+app().catch(error => {
+  console.error("Error in app initialization:", error instanceof Error ? error.message : error);
+  process.exit(1); // Optionally exit the process if initialization fails
+});;

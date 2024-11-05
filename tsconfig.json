@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
     "module": "CommonJS",
+    "target": "ES2020",
+     "types": ["node"],
+    "moduleResolution": "Node",
     "allowImportingTsExtensions": true,
     "emitDeclarationOnly": true,
     "declaration": true,

@@ -1,7 +1,7 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { GraphQLContext } from './context.ts';
 import typeDefs from './schema.graphql';
-import { User, Order, Payment, Review, Assignment, Role, PaymentStatus } from '.prisma/client';
+import { User, Order, Payment, Review, Assignment, Role, PaymentStatus } from '@prisma/client';
 import { compare, hash } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import { bucket, storage } from './index.ts';
