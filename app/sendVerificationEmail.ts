@@ -7,7 +7,7 @@ const mailjet = Mailjet.apiConnect(
 );
 
 export const sendVerificationEmail = async (to: string, verificationToken: string) => {
-    const backEndUrl = process.env.BACKEND_URL ? process.env.BACKEND_URL : 'https://anyday-backend-app-hufozn77kq-uc.a.run.app'
+    const backEndUrl = process.env.BACKEND_URL ? process.env.BACKEND_URL : 'https://anyday-backend-service-969666510139.us-central1.run.app'
     const verificationLink = `${backEndUrl}/verify-email?token=${verificationToken}`;
 
     const data = {
