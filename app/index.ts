@@ -14,21 +14,21 @@ import {
   processRequest,
   renderGraphiQL,
   Request,
-  Headers,
   sendResult,
   shouldRenderGraphiQL,
 } from 'graphql-helix';
+import { Headers } from 'node-fetch';
 import { graphql, GraphQLError } from 'graphql';
 import { gql } from 'graphql-request';
-import { schema } from './schema';
-import { contextFactory } from './context';
-import Client from './redisClient';
-import redisClient from './redisClient';
+import { schema } from './schema.js';
+import { contextFactory } from './context.js';
+
+import redisClient from './redisClient.js';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import fastifyStatic from '@fastify/static';
-import { sendPaymentConfirmationEmail } from './sendPaymentConfirmationEmail';
+import { sendPaymentConfirmationEmail } from './sendPaymentConfirmationEmail.js';
 
 dotenv.config();
 
@@ -168,11 +168,17 @@ async function app() {
   //   reply.status(204).send();
   // });
 
-
   server.route({
     method: ['POST', 'GET'],
     url: '/graphql',
     handler: async (req, resp) => {
+      // Render GraphiQL interface for GET requests in browser
+      if (req.method === 'GET' && shouldRenderGraphiQL(req)) {
+        resp.type('text/html');
+        resp.send(renderGraphiQL({ endpoint: '/graphql' }));
+        return;
+      }
+
       const headers = new Headers();
       for (const [key, value] of Object.entries(req.headers)) {
         if (Array.isArray(value)) {
@@ -182,34 +188,30 @@ async function app() {
         }
       }
 
-      // Helper function to convert Node.js Readable to ReadableStream<Uint8Array>
-      function convertNodeReadableToWebReadable(readable: Readable): ReadableStream<Uint8Array> {
-        return new ReadableStream<Uint8Array>({
-          start(controller) {
-            readable.on('data', (chunk) => controller.enqueue(new Uint8Array(chunk)));
-            readable.on('end', () => controller.close());
-            readable.on('error', (err) => controller.error(err));
-          },
-          cancel() {
-            readable.destroy();
-          }
-        });
+      interface GraphQLRequest {
+        query: string;
+        variables?: { [key: string]: any };
+        operationName?: string;
       }
 
-      const body = req.body instanceof Readable ? convertNodeReadableToWebReadable(req.body) : null;
+      const requestBody = req.body as GraphQLRequest;
 
-      const request: MinimalRequest = {
+      const request = {
         headers,
         method: req.method as string,
-        body: body as ReadableStream<Uint8Array>,
-        query: typeof req.body === 'string' ? req.body : '',
-
+        body: requestBody,
+        query: requestBody.query || '',
       };
 
       const { operationName, query, variables } = getGraphQLParameters(request);
 
+      if (!query) {
+        resp.status(400).send({ errors: [{ message: 'Must provide query string.' }] });
+        return;
+      }
+
       const result = await processRequest({
-        request: { headers, method: req.method, body, query },
+        request,
         schema,
         operationName,
         contextFactory: () => contextFactory(req),
@@ -217,7 +219,7 @@ async function app() {
         variables,
       });
 
-      if (result.type === "RESPONSE") {
+      if (result.type === 'RESPONSE') {
         result.headers.forEach(({ name, value }: { name: string; value: string }) => {
           resp.header(name, value);
         });
@@ -227,6 +229,7 @@ async function app() {
       }
     },
   });
+
 
   // Server Status Endpoint
   server.route({

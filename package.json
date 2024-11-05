@@ -2,14 +2,18 @@
   "name": "anyday-essay-backend",
   "version": "1.0.0",
   "description": "An online essay service",
+  "type": "module",
+  "exports": {
+    "./dist/*.graphql": "./dist/*.graphql"
+  },
   "main": "dist/index.js",
   "scripts": {
     "clean": "rm -rf dist",
     "test": "npm test",
-    "dev": "ts-node-dev --exit-child app/index.ts",
+    "dev": "tsx watch app/index.ts",
     "unknown": "npm run clean && tsc",
-    "build":"tsc",
-   "start": "node dist/index.js",
+    "build": "tsc",
+    "start": "node --experimental-loader ./graphql-loader.js dist/index.js",
     "postinstall": "prisma generate",
     "generate:types": "graphql-codegen --config app/codegen.yml"
   },
@@ -48,7 +52,8 @@
     "@types/uuid": "^10.0.0",
     "@types/validator": "^13.12.1",
     "fastify-cors": "^6.1.0",
-    "prisma": "^5.21.1"
+    "prisma": "^5.21.1",
+    "tsx": "^4.19.2"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
@@ -75,6 +80,7 @@
     "jsonwebtoken": "^9.0.2",
     "mailgun-js": "^0.22.0",
     "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2",
     "node-mailjet": "^6.0.6",
     "nodemailer": "^6.9.14",
     "nodemon": "^3.1.4",

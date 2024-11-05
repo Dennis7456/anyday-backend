@@ -1,7 +1,6 @@
+import jwt from 'jsonwebtoken';
 import { PrismaClient, User } from '@prisma/client';
 import { FastifyRequest } from 'fastify';
-import jwt from 'jsonwebtoken';
-import { JwtPayload, verify } from 'jsonwebtoken';
 
 export const APP_SECRET = 'secret';
 
@@ -17,24 +16,21 @@ async function authenticateUser(
   const authHeader = request.headers.authorization;
 
   if (authHeader) {
-
     try {
       const token = authHeader.split(' ')[1];
-      const tokenPayload = verify(token, APP_SECRET) as CustomJwtPayload
+      const { verify } = jwt;
+      const tokenPayload = verify(token, APP_SECRET) as CustomJwtPayload;
 
       if (tokenPayload && tokenPayload.userId) {
-
         return await prisma.user.findUnique({
           where: {
             id: tokenPayload.userId.toString(),
           }
         });
       }
-    }
-
-    catch (error) {
+    } catch (error) {
       console.error("Error verifying token", error);
-      return null
+      return null;
     }
   }
   return null;

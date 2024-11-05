@@ -1,21 +1,26 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.schema = void 0;
-const schema_1 = require("@graphql-tools/schema");
-const schema_graphql_1 = __importDefault(require("./schema.graphql"));
-const client_1 = require("@prisma/client");
-const bcryptjs_1 = require("bcryptjs");
-const jsonwebtoken_1 = require("jsonwebtoken");
-const index_1 = require("./index");
-const auth_1 = require("./auth");
-const uuid_1 = require("uuid");
-const redisClient_1 = __importDefault(require("./redisClient"));
+import { makeExecutableSchema } from '@graphql-tools/schema';
+// import 'graphql-import-node';
+// import typeDefs from './schema.graphql';
+import { gql } from 'graphql-tag';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Role } from '@prisma/client';
+// import { compare, hash } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
+const { compare, hash } = bcrypt;
+import jwt from 'jsonwebtoken';
+const { sign } = jwt;
+import { bucket, storage } from './index.js';
+import { APP_SECRET } from './auth.js';
+import { v4 as uuidv4 } from 'uuid';
+import redisClient from './redisClient.js';
+import fs from 'fs';
 // import { sendVerificationEmail } from './sendVerificationEmail';
-const sendVerificationEmail_1 = require("./sendVerificationEmail");
-const sendOrderSuccessEmail_1 = require("./sendOrderSuccessEmail");
+import { sendVerificationEmail } from './sendVerificationEmail.js';
+import { sendOrderSuccessEmail } from './sendOrderSuccessEmail.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const typeDefs = gql `${fs.readFileSync(path.join(__dirname, './schema.graphql'), 'utf-8')}`;
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
 const baseUrl = process.env.BASE_URL || "https://anyday-frontend.web.app";
 const users = [
@@ -28,7 +33,7 @@ const users = [
         phoneNumber: '+5138888888',
         dateOfBirth: '1987-03-13',
         password: 'password',
-        role: client_1.Role.STUDENT,
+        role: Role.STUDENT,
         createdAt: new Date(),
         updatedAt: new Date(),
     },
@@ -41,7 +46,7 @@ const users = [
         phoneNumber: '+5138888888',
         dateOfBirth: '1997-05-10',
         password: 'password',
-        role: client_1.Role.STUDENT,
+        role: Role.STUDENT,
         createdAt: new Date(),
         updatedAt: new Date(),
     },
@@ -104,19 +109,19 @@ const resolvers = {
         registerAndCreateOrder: async (_, 
         // { email, paperType, pages, dueDate
         { input }) => {
-            const verificationToken = (0, uuid_1.v4)();
+            const verificationToken = uuidv4();
             //store initial data in redis
-            await redisClient_1.default.setEx(verificationToken, REGISTER_EXPIRATION, JSON.stringify({
+            await redisClient.setEx(verificationToken, REGISTER_EXPIRATION, JSON.stringify({
                 email: input.email,
                 paperType: input.paperType,
                 pages: input.pages,
                 dueDate: input.dueDate
             }));
-            await (0, sendVerificationEmail_1.sendVerificationEmail)(input.email, verificationToken);
+            await sendVerificationEmail(input.email, verificationToken);
             return { success: true, message: "Verification Email Sent.", verificationToken: verificationToken };
         },
         verifyEmail: async (_, { token }) => {
-            const cachedData = await redisClient_1.default.get(token);
+            const cachedData = await redisClient.get(token);
             if (!cachedData) {
                 return { valid: false, message: 'Invalid or expired token.', redirectUrl: '#', token: '' };
             }
@@ -125,7 +130,7 @@ const resolvers = {
         },
         completeRegistration: async (_, { token }) => {
             // Retrieve and parse cached data
-            const cachedData = await redisClient_1.default.get(token);
+            const cachedData = await redisClient.get(token);
             if (!cachedData) {
                 throw new Error("Invalid or expired token");
             }
@@ -141,7 +146,7 @@ const resolvers = {
             //   dueDate
             // });
             // Optionally, delete the token from Redis after successful registration
-            await redisClient_1.default.del(token);
+            await redisClient.del(token);
             return {
                 valid: true,
                 message: "Registration complete and order created."
@@ -155,7 +160,7 @@ const resolvers = {
                 console.log("error");
             }
             const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(Math.random() * 10000)}`;
-            const hashedPassword = await (0, bcryptjs_1.hash)(password, 10);
+            const hashedPassword = await hash(password, 10);
             try {
                 const student = await context.prisma.user.create({
                     data: {
@@ -236,10 +241,10 @@ const resolvers = {
                         }
                         const { buffer, contentType: type } = base64ToBuffer(base64, contentType);
                         const fileName = `image-${Date.now()}-${index}.${contentType.split('/')[1]}`;
-                        const file = index_1.storage.bucket(index_1.bucket.name).file(fileName);
+                        const file = storage.bucket(bucket.name).file(fileName);
                         await file.save(buffer, { contentType: type });
-                        console.log("inside: ", `https://storage.cloud.google.com/${index_1.bucket.name}/${fileName}`);
-                        return `https://storage.cloud.google.com/${index_1.bucket.name}/${fileName}`;
+                        console.log("inside: ", `https://storage.cloud.google.com/${bucket.name}/${fileName}`);
+                        return `https://storage.cloud.google.com/${bucket.name}/${fileName}`;
                     }
                     catch (error) {
                         if (error instanceof Error) {
@@ -303,7 +308,7 @@ const resolvers = {
                     where: { id: studentId.toString() },
                 });
                 if (student && student.email) {
-                    (0, sendOrderSuccessEmail_1.sendOrderSuccessEmail)(student.email, order.instructions, order.paperType, order.numberOfPages, order.dueDate, order.totalAmount, order.depositAmount, order.status, order.uploadedFiles);
+                    sendOrderSuccessEmail(student.email, order.instructions, order.paperType, order.numberOfPages, order.dueDate, order.totalAmount, order.depositAmount, order.status, order.uploadedFiles);
                 }
                 return {
                     success: true,
@@ -327,11 +332,11 @@ const resolvers = {
             if (!user) {
                 throw new Error('User does not exist');
             }
-            const isValid = await (0, bcryptjs_1.compare)(password, user.password);
+            const isValid = await compare(password, user.password);
             if (!isValid) {
                 throw new Error('Incorrect password');
             }
-            const token = (0, jsonwebtoken_1.sign)({ userId: user.id }, auth_1.APP_SECRET);
+            const token = sign({ userId: user.id }, APP_SECRET);
             return {
                 token,
                 user,
@@ -432,7 +437,7 @@ const resolvers = {
         },
     },
 };
-exports.schema = (0, schema_1.makeExecutableSchema)({
-    typeDefs: schema_graphql_1.default,
+export const schema = makeExecutableSchema({
+    typeDefs,
     resolvers,
 });

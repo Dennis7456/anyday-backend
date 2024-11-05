@@ -1,21 +1,32 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { GraphQLContext } from './context';
-import typeDefs from './schema.graphql';
+// import 'graphql-import-node';
+// import typeDefs from './schema.graphql';
+import { gql } from 'graphql-tag';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { User, Order, Payment, Review, Assignment, Role, PaymentStatus } from '@prisma/client';
-import { compare, hash } from 'bcryptjs';
-import { sign } from 'jsonwebtoken';
-import { bucket, storage } from './index';
-import { APP_SECRET } from './auth';
+// import { compare, hash } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
+const { compare, hash } = bcrypt;
+import jwt from 'jsonwebtoken';
+const { sign } = jwt;
+import { bucket, storage } from './index.js';
+import { APP_SECRET } from './auth.js';
 import { v4 as uuidv4 } from 'uuid';
-import redisClient from './redisClient';
+import redisClient from './redisClient.js';
 import { isEmail } from 'validator';
 import { emit } from 'process';
 import fs from 'fs';
 // import { sendVerificationEmail } from './sendVerificationEmail';
-import { sendVerificationEmail } from './sendVerificationEmail';
-import { sendOrderSuccessEmail } from './sendOrderSuccessEmail';
+import { sendVerificationEmail } from './sendVerificationEmail.js';
+import { sendOrderSuccessEmail } from './sendOrderSuccessEmail.js';
 import { RegisterOrderInput, RegisterOrderResponse, CreateStudentInput, CreateOrderInput, AttachFilesInput } from './types'
 import { OrderStatus } from '.prisma/client';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const typeDefs = gql`${fs.readFileSync(path.join(__dirname, './schema.graphql'), 'utf-8')}`;
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
 const baseUrl = process.env.BASE_URL || "https://anyday-frontend.web.app"
