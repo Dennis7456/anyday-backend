@@ -4,14 +4,16 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const redisHost = process.env.REDISHOST;
-const redisPort = parseInt(process.env.REDISPORT || '6379', 10); // Ensure it's a number
+const redisPort = parseInt(process.env.REDISPORT || '6379', 10);
+const redisPassword = process.env.REDISPASSWORD;
 
-if (!redisHost || !redisPort) {
-    throw new Error("REDISHOST or REDISPORT environment variables are not set");
+if (!redisHost || !redisPort || !redisPassword) {
+    throw new Error("REDISHOST, REDISPORT, or REDISPASSWORD environment variables are not set");
 }
 
 const redisClient: RedisClientType = createClient({
-    url: `redis://${redisHost}:${redisPort}`
+    url: `redis://${redisHost}:${redisPort}`,
+    password: redisPassword,
 });
 
 redisClient.on("error", (err) => console.error("Redis Client Error", err));
@@ -22,7 +24,7 @@ redisClient.on("error", (err) => console.error("Redis Client Error", err));
         console.log("Redis Client connected successfully");
     } catch (error) {
         console.error("Error connecting to Redis:", error);
-        process.exit(1); // Exit process on failure if necessary
+        process.exit(1);
     }
 })();
 
