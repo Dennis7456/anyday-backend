@@ -60,6 +60,7 @@
     "@fastify/multipart": "^9.0.1",
     "@fastify/static": "^8.0.2",
     "@google-cloud/storage": "^7.12.1",
+    "@graphql-tools/graphql-file-loader": "^8.0.2",
     "@graphql-tools/load": "^8.0.3",
     "@graphql-tools/schema": "^10.0.6",
     "@neondatabase/serverless": "^0.9.3",
