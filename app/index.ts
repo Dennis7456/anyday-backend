@@ -503,6 +503,7 @@ async function app() {
     amount: number;
     paymentType: 'deposit' | 'full';
   }
+
   // Route to create a payment session
   server.post('/api/payment/create-session', async (req: FastifyRequest<{ Body: CreateSessionRequestBody }>, reply: FastifyReply
   ) => {
