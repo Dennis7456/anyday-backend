@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function app() {
   // const newUser = await prisma.user.create({
@@ -14,20 +14,20 @@ async function app() {
   //     password: 'password',
   //   },
   // });
-  const allUsers = await prisma.user.findMany();
+  const allUsers = await prisma.user.findMany()
   const oneUser = await prisma.user.findUnique({
     where: {
-      id: "1",
+      id: '1',
     },
-  });
+  })
   //console.log(allUsers);
-  console.log(oneUser);
+  console.log(oneUser)
 }
 
 app()
   .catch((e) => {
-    throw e;
+    throw e
   })
   .finally(async () => {
-    await prisma.$disconnect;
-  });
+    await prisma.$disconnect
+  })

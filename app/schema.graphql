@@ -46,7 +46,6 @@ type Mutation {
   createAssignment(orderId: String!, writerId: Int!): Assignment!
 
   updateOrderStatus(orderId: String!, status: String!): Order
-  
 }
 
 input RegisterOrderInput {
@@ -70,7 +69,7 @@ input CreateStudentInput {
   dateOfBirth: String!
   phoneNumber: String!
   password: String!
-  }
+}
 
 input CreateOrderInput {
   studentId: String!
@@ -79,7 +78,7 @@ input CreateOrderInput {
   numberOfPages: Int!
   dueDate: String!
   uploadedFiles: [FileValueInput!]!
-  }
+}
 input AttachFilesInput {
   orderId: String!
   fileUrls: [String!]!
@@ -107,9 +106,9 @@ type VerifyEmailResponse {
 }
 
 type OrderResponse {
-success: Boolean!
-message: String
-order: Order!
+  success: Boolean!
+  message: String
+  order: Order!
 }
 
 type User {
@@ -183,11 +182,11 @@ type AuthPayload {
 }
 
 type FileValue {
-id: String!
-url: String!
-name: String!
-size: String!
-type: String!
+  id: String!
+  url: String!
+  name: String!
+  size: String!
+  type: String!
 }
 
 enum Role {

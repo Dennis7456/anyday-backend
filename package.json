@@ -15,7 +15,9 @@
     "build": "tsc",
     "start": "node --experimental-loader ./graphql-loader.js dist/index.js",
     "postinstall": "prisma generate",
-    "generate:types": "graphql-codegen --config app/codegen.yml"
+    "generate:types": "graphql-codegen --config app/codegen.yml",
+    "format": "prettier --write \"app/**/*.{ts,tsx,js,jsx,json,graphql}\"",
+  "format:check": "prettier --check \"app/**/*.{ts,tsx,js,jsx,json,graphql}\""
   },
   "repository": {
     "type": "git",
@@ -52,6 +54,7 @@
     "@types/uuid": "^10.0.0",
     "@types/validator": "^13.12.1",
     "fastify-cors": "^6.1.0",
+    "prettier": "^3.3.3",
     "prisma": "^5.21.1",
     "tsx": "^4.19.2"
   },

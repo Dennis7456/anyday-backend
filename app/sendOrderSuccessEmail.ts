@@ -1,9 +1,9 @@
-import Mailjet from 'node-mailjet';
+import Mailjet from 'node-mailjet'
 
 const mailjetClient = Mailjet.apiConnect(
   process.env.MAILJET_API_KEY || '',
   process.env.MAILJET_SECRET_KEY || ''
-);
+)
 
 export const sendOrderSuccessEmail = async (
   to: string,
@@ -18,7 +18,7 @@ export const sendOrderSuccessEmail = async (
 ) => {
   const uploadedFilesList = uploadedFiles
     .map((file) => `<li><a href="${file.url}">${file.name}</a></li>`)
-    .join('');
+    .join('')
 
   const data = {
     Messages: [
@@ -47,13 +47,18 @@ export const sendOrderSuccessEmail = async (
           <ul>${uploadedFilesList}</ul>`,
       },
     ],
-  };
+  }
 
   try {
-    const response = await mailjetClient.post('send', { version: 'v3.1' }).request(data);
-    console.log('Order success email sent successfully:', response.body);
+    const response = await mailjetClient
+      .post('send', { version: 'v3.1' })
+      .request(data)
+    console.log('Order success email sent successfully:', response.body)
   } catch (error) {
-    console.error('Error sending order success email:', (error as Error).message);
-    throw new Error('Failed to send order success email');
+    console.error(
+      'Error sending order success email:',
+      (error as Error).message
+    )
+    throw new Error('Failed to send order success email')
   }
-};
+}
