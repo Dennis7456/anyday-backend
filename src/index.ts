@@ -11,7 +11,7 @@ import {
 import { schema } from './schema'
 import { contextFactory } from './context'
 
-async function main() {
+export function createServer() {
   const server = fastify()
 
   server.route({
@@ -25,13 +25,20 @@ async function main() {
         body: req.body,
       }
 
+      console.log('Request headers', request.headers)
+      console.log('Request method', request.method)
+      console.log('Request query', request.query)
+      console.log('Request body', request.body)
+
       if (shouldRenderGraphiQL(request)) {
+        // Render the GraphiQL interface if conditions are met
+        const responseBody = renderGraphiQL({
+          endpoint: '/graphql',
+        })
+
         reply.header('Content-Type', 'text/html')
-        reply.send(
-          renderGraphiQL({
-            endpoint: '/graphql',
-          })
-        )
+        reply.status(200)
+        reply.send(responseBody)
 
         return
       }
@@ -51,13 +58,18 @@ async function main() {
     },
   })
 
-  try {
-    await server.listen({ port: 4000, host: '0.0.0.0' })
-    console.log(`Server is running on http://localhost:4000/`)
-  } catch (error) {
-    server.log.error(error)
-    process.exit(1)
-  }
+  return server
 }
 
-main()
+if (require.main === module) {
+  ;(async () => {
+    try {
+      const server = createServer()
+      await server.listen({ port: 4000, host: '0.0.0.0' })
+      console.log(`Server is running on http://localhost:4000/`)
+    } catch (error) {
+      console.error(error)
+      process.exit(1)
+    }
+  })()
+}

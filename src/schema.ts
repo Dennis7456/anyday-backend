@@ -11,17 +11,6 @@ type Link = {
   postedOn: Date
 }
 
-// const links: Link[] = [
-//   {
-//     id: 'link-0',
-//     url: 'www.howtographql.com',
-//     description: 'Fullstack tutorial for GraphQL',
-//     createdAt: new Date(),
-//     updatedAt: new Date(),
-//     postedOn: new Date(),
-//   },
-// ]
-
 const resolvers = {
   Query: {
     info: () => 'This is the API of a Hackernews Clone',

@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:staged": "jest --findRelatedTests",
+    "test:cache": "npx jest --clearCache",
     "dev": "ts-node-dev --exit-child src/index.ts",
     "clean": "rm -rf dist",
     "build": "npm -s run clean && npm -s run generate:prisma && tsc",
     "generate:prisma": "prisma generate",
-    "start": "ts-node src/index.ts",
+    "start": "ts-node dist/index.js",
     "type-check": "tsc --noEmit",
     "prepare": "husky install",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,graphql}\"",
@@ -17,10 +20,11 @@
     "lint:fix": "eslint \"app/**/*.{ts,tsx}\" --fix",
     "validate": "npm -s run format:check && npm -s run lint && npm -s run format && npm -s run lint:fix"
   },
-  "lint-staged":{
+  "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
+      "npm run lint",
+      "npm run format",
+      "npm run test:staged"
     ],
     "src/**/*.graphql": [
       "prettier --write"
@@ -29,23 +33,35 @@
       "prettier --write"
     ]
   },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
     "@eslint/js": "^9.14.0",
     "@prisma/client": "^5.22.0",
     "@types/node": "^22.9.0",
+    "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^8.14.0",
     "@typescript-eslint/parser": "^8.14.0",
     "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.1.0",
     "globals": "^15.12.0",
+    "graphql-tag": "^2.12.6",
     "husky": "^8.0.0",
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
+    "jest-transform-graphql": "^2.1.0",
     "lint-staged": "^15.2.10",
     "prettier": "^3.3.3",
     "prisma": "^5.22.0",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.6.3",
@@ -53,6 +69,7 @@
   },
   "dependencies": {
     "@graphql-tools/schema": "^10.0.7",
+    "@types/jest": "^29.5.14",
     "fastify": "^5.1.0",
     "graphql": "^16.9.0",
     "graphql-helix": "^1.13.0",
