@@ -1,0 +1,62 @@
+{
+  "name": "anyday-backend-backup",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "ts-node-dev --exit-child src/index.ts",
+    "clean": "rm -rf dist",
+    "build": "npm -s run clean && npm -s run generate:prisma && tsc",
+    "generate:prisma": "prisma generate",
+    "start": "ts-node src/index.ts",
+    "type-check": "tsc --noEmit",
+    "prepare": "husky install",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,graphql}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,graphql}\"",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"app/**/*.{ts,tsx}\" --fix",
+    "validate": "npm -s run format:check && npm -s run lint && npm -s run format && npm -s run lint:fix"
+  },
+  "lint-staged":{
+    "src/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.graphql": [
+      "prettier --write"
+    ],
+    "src/**/*.json": [
+      "prettier --write"
+    ]
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "@prisma/client": "^5.22.0",
+    "@types/node": "^22.9.0",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
+    "eslint": "^9.14.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.12.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.3.3",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.14.0"
+  },
+  "dependencies": {
+    "@graphql-tools/schema": "^10.0.7",
+    "fastify": "^5.1.0",
+    "graphql": "^16.9.0",
+    "graphql-helix": "^1.13.0",
+    "graphql-import-node": "^0.0.5",
+    "graphql-scalars": "^1.23.0"
+  }
+}
