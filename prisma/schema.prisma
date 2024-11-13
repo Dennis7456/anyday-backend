@@ -6,18 +6,222 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgres"
+  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
 }
 
-model Link {
-  id          Int   @id @default(autoincrement())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
-  postedOn    DateTime @default(now())
-  description String
-  url         String
+model User {
+  id                String      @id @default(uuid())
+  firstName         String
+  lastName          String
+  userName          String
+  email             String       @unique
+  phoneNumber       String
+  dateOfBirth       DateTime
+  password          String
+  role              Role
+  isVerified        Boolean      @default(false)
+  profilePicture    String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  // Notfication Preferences
+  emailNotifications Boolean     @default(true)
+  inAppNotifications Boolean     @default(true)
+
+  // Relations
+  orders          Order[]           @relation("UserOrders")
+  notifications      Notification[] @relation("UserNotifications")
+  sentMessages    Message[]         @relation("MessageSender")
+  receivedMessages   Message[]      @relation("MessageRecipient")
+  qaReviews      Review[]     @relation("QAReviews")
+  writtenReviews Review[]     @relation("WriterReviews")
+  assignments    Assignment[] @relation("WriterAssignments")
+  chats               Chat[]    @relation("ChatParticipants")
+
+  @@map("users")
+}
+
+model Order {
+  id            String       @id @default(uuid())
+  studentId     String
+  instructions  String
+  paperType     String
+  numberOfPages Int
+  dueDate       DateTime
+  status        OrderStatus
+  totalAmount   Float
+  depositAmount Float
+  createdAt     DateTime    @default(now())
+  submittedAt   DateTime?   // Optional timestamp to track when the order was submitted
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  student       User         @relation("UserOrders", fields: [studentId], references: [id])
+  payment       Payment?
+  reviews       Review[]
+  assignments   Assignment[]
+  uploadedFiles File[]       @relation("OrderFiles")
+  chats         Chat[]       @relation("OrderChats")
+
+  @@map("orders")
+}
+
+model Review {
+  id        String      @id @default(uuid())
+  orderId   String
+  qaId      String
+  writerId  String
+  comments  String?
+  rating    Int
+  status    ReviewStatus @default(PENDING) // Track if a review is pending or verified
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  order  Order @relation(fields: [orderId], references: [id])
+  qa     User  @relation("QAReviews", fields: [qaId], references: [id])
+  writer User  @relation("WriterReviews", fields: [writerId], references: [id])
+
+  @@map("reviews")
+}
+
+enum ReviewStatus {
+  PENDING
+  VERIFIED
+}
+
+model Assignment {
+  id          String       @id @default(uuid())
+  orderId     String
+  writerId    String
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+  status      AssignmentStatus @default(PENDING) // Track the status of the assignment
+
+  // Relations
+  order  Order @relation(fields: [orderId], references: [id])
+  writer User  @relation("WriterAssignments", fields: [writerId], references: [id])
+
+  @@map("assignments")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  orderId         String        @unique
+  amount          Float
+  paymentStatus   PaymentStatus
+  transactionId   String?
+  paymentDate     DateTime      @default(now())
+  paymentMethod   String?       // The method used (e.g., Stripe, PayPal)
+  paymentDueDate  DateTime?     // Optional due date for payment
+
+  // Relations
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model File {
+  id         String      @id @default(uuid())
+  url        String
+  name       String
+  size       String
+  mimeType   String?     // Added mimeType for better validation
+  orderId    String
+  order      Order    @relation("OrderFiles", fields: [orderId], references: [id])
+
+  @@map("files")
+}
+
+model Chat {
+  id          String       @id @default(uuid())
+  orderId     String
+  participants User[]      @relation("ChatParticipants") // Users involved in the chat
+  messages    Message[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  order       Order         @relation("OrderChats", fields: [orderId], references: [id])
+
+  @@map("chats")
+}
+
+model Message {
+  id          String      @id @default(uuid())
+  chatId      String
+  senderId    String
+  recipientId String?
+  content     String
+  isRead      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  chat        Chat        @relation(fields: [chatId], references: [id])
+  sender      User        @relation("MessageSender", fields: [senderId], references: [id])
+  recipient   User?       @relation("MessageRecipient", fields: [recipientId], references: [id])
+
+  @@map("messages")
+}
+
+model Notification {
+  id          String      @id @default(uuid())
+  recipientId String
+  type        NotificationType
+  message     String
+  link        String      // Link to relevant page (e.g., order or chat)
+  isRead      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  recipient   User        @relation("UserNotifications", fields: [recipientId], references: [id])
+
+  @@map("notifications")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+  WRITER
+  QA
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum NotificationType {
+  MESSAGE
+  ORDER_UPDATE
+  REVIEW
+  PAYMENT
+}
+
+enum PaperType {
+  ESSAY
+  RESEARCH_PAPER
+  THESIS
+  DISSERTATION
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REVIEWED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }

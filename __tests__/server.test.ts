@@ -1,6 +1,12 @@
 import {createServer} from '../src/index';
 import supertest from 'supertest'
-import request from 'supertest';
+
+jest.mock('node-mailjet', () => ({
+  apiConnect: jest.fn(() => ({
+    post: jest.fn().mockReturnThis(),
+    request: jest.fn().mockResolvedValue({ body: { success: true } }),
+  }))
+}))
 
 describe('GraphQL Server', () => {
   let server: ReturnType<typeof createServer>

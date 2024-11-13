@@ -1,5 +1,6 @@
 import 'graphql-import-node'
 import fastify from 'fastify'
+import dotenv from 'dotenv'
 import {
   getGraphQLParameters,
   processRequest,
@@ -9,11 +10,14 @@ import {
   renderGraphiQL,
 } from 'graphql-helix'
 import { schema } from './schema'
-import { contextFactory } from './context'
+import { contextFactory } from './context/context'
+
+dotenv.config()
 
 export function createServer() {
   const server = fastify()
 
+  // Register the GraphQL route directly without wrapping it
   server.route({
     method: ['POST', 'GET'],
     url: '/graphql',
@@ -24,11 +28,6 @@ export function createServer() {
         query: req.query,
         body: req.body,
       }
-
-      console.log('Request headers', request.headers)
-      console.log('Request method', request.method)
-      console.log('Request query', request.query)
-      console.log('Request body', request.body)
 
       if (shouldRenderGraphiQL(request)) {
         // Render the GraphiQL interface if conditions are met
@@ -49,7 +48,7 @@ export function createServer() {
         request,
         schema,
         operationName,
-        contextFactory,
+        contextFactory: () => contextFactory(req),
         query,
         variables,
       })

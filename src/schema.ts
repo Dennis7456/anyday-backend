@@ -1,49 +1,26 @@
 import { makeExecutableSchema } from '@graphql-tools/schema'
-import typeDefs from './schema.graphql'
-import { GraphQLContext } from './context'
+import fs from 'fs'
+import path from 'path'
+import gql from 'graphql-tag'
+import { GraphQLContext } from './context/context'
+import { userResolvers } from './controllers/userController'
+import { orderResolvers } from './controllers/orderController'
 
-type Link = {
-  id: string
-  url: string
-  description: string
-  createdAt: Date
-  updatedAt: Date
-  postedOn: Date
-}
+const typeDefs = gql(
+  fs.readFileSync(path.join(__dirname, 'schema.graphql'), 'utf8')
+)
 
-const resolvers = {
+export const resolvers = {
   Query: {
-    info: () => 'This is the API of a Hackernews Clone',
-    feed: async (parent: unknown, args: object, context: GraphQLContext) => {
-      return context.prisma.link.findMany()
+    info: (parent: unknown, args: object, context: GraphQLContext) => {
+      return `This is the parent: ${parent}. These are the ${args}. This is the ${context}. This works!`
     },
-  },
-
-  Link: {
-    id: (parent: Link) => parent.id,
-    description: (parent: Link) => parent.description,
-    url: (parent: Link) => parent.url,
-    createdAt: (parent: Link) => parent.createdAt,
-    updatedAt: (parent: Link) => parent.updatedAt,
-    postedOn: (parent: Link) => parent.postedOn,
+    ...userResolvers.Query,
+    ...orderResolvers.Query,
   },
   Mutation: {
-    post: (
-      parent: unknown,
-      args: { description: string; url: string },
-      context: GraphQLContext
-    ) => {
-      const newLink = context.prisma.link.create({
-        data: {
-          url: args.url,
-          description: args.description,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          postedOn: new Date(),
-        },
-      })
-      return newLink
-    },
+    ...userResolvers.Mutation,
+    ...orderResolvers.Mutation,
   },
 }
 
