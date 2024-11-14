@@ -1,5 +1,7 @@
+import fastify, { FastifyInstance } from 'fastify';
 import {createServer} from '../src/index';
 import supertest from 'supertest'
+import { registerIndexRoute } from '../src/routes/indexRoute';
 
 jest.mock('node-mailjet', () => ({
   apiConnect: jest.fn(() => ({
@@ -60,3 +62,53 @@ describe('GraphQL Server', () => {
     expect(response.text).toContain('<title>GraphiQL</title>')
   })
 })
+
+describe('indexRoute', () => {
+  let server: FastifyInstance;
+
+  beforeEach(() => {
+    // Create a fresh Fastify server instance for each test
+    server = fastify();
+    // Register the index route
+    registerIndexRoute(server);
+  });
+
+  afterEach(async () => {
+    // Close the server after each test
+    await server.close();
+  });
+
+  it('should return "Server is running!" when the root endpoint is accessed', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/',
+    });
+
+    expect(response.statusCode).toBe(200); // Check that status is 200 OK
+    expect(response.body).toBe('Server is running!'); // Check the response body
+  });
+
+  it('should return 500 if an error occurs in the handler', async () => {
+    // Simulate an error by modifying the route handler to throw an error
+    const erroringServer = fastify();
+    erroringServer.route({
+      method: 'GET',
+      url: '/',
+      handler: async (req, resp) => {
+        throw new Error('Simulated error');
+      },
+    });
+
+    // Registering the error route
+    await erroringServer.ready();
+
+    const response = await erroringServer.inject({
+      method: 'GET',
+      url: '/',
+    });
+
+    expect(response.statusCode).toBe(500); 
+    // console.log(response)
+    expect(response.statusMessage).toBe('Internal Server Error');
+  });
+});

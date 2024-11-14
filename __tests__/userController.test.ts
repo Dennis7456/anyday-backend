@@ -66,4 +66,5 @@ describe('registerAndCreateOrder', () => {
 
     consoleErrorMock.mockRestore();
   });
+
 });

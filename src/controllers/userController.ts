@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { sendVerificationEmail } from '../services/sendVerificationEmail'
 import redisClient from '../services/redisClient'
 
+export type Role = 'STUDENT' | 'ADMIN' | 'WRITER' | 'QA'
+
 interface User {
   id: string
   firstName: string
@@ -53,7 +55,9 @@ export const userResolvers = {
       return context.prisma.user.findUnique({ where: { id } })
     },
     loggedInUser: (_: unknown, __: unknown, context: GraphQLContext) => {
-      if (!context.currentUser) throw new Error('Please login')
+      if (!context.currentUser) {
+        throw new Error('Please login')
+      }
       return context.currentUser
     },
   },

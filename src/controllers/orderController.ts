@@ -16,6 +16,16 @@ interface Order {
   uploadedFiles: { url: string; name: string; size: number; type: string }[]
 }
 
+interface OrderData {
+  instructions: string
+  paperType: string
+  numberOfPages: number
+  dueDate: string
+  totalAmount: number
+  depositAmount: number
+  status: OrderStatus
+}
+
 export interface CreateOrderInput {
   studentId: string
   instructions: string
@@ -33,18 +43,52 @@ export interface CreateOrderInput {
 export const orderResolvers = {
   Query: {
     orders: async (_: unknown, __: unknown, context: GraphQLContext) => {
-      if (!context.currentUser) throw new Error('Authentication required')
-      return context.prisma.order.findMany({
+      if (!context.currentUser) {
+        throw new Error('Please login to continue')
+      }
+
+      const orders = await context.prisma.order.findMany({
         where: { studentId: context.currentUser.id },
         include: { uploadedFiles: true },
       })
+
+      if (orders.length === 0) {
+        throw new Error('No orders found for this user')
+      }
+
+      // Check if all orders belong to the current user
+      const unauthorizedOrders = orders.filter(
+        (order) => order.studentId !== context.currentUser?.id
+      )
+
+      if (unauthorizedOrders.length > 0) {
+        throw new Error('Unauthorized access to orders')
+      }
+
+      return orders
     },
+
     order: async (
       _: unknown,
       { id }: { id: string },
       context: GraphQLContext
     ) => {
-      return context.prisma.order.findUnique({ where: { id } })
+      if (!context.currentUser) throw new Error('Please login to continue')
+
+      const order = await context.prisma.order.findFirst({
+        where: {
+          id,
+          studentId: context.currentUser.id,
+        },
+        include: { uploadedFiles: true },
+      })
+
+      if (!order)
+        throw new Error(
+          'Order not found or you do not have permission to view it'
+        )
+
+      return order
     },
   },
   Mutation: {
@@ -125,30 +169,41 @@ export const orderResolvers = {
         data,
       }: {
         orderId: string
-        data: Partial<{
-          instructions: string
-          paperType: string
-          numberOfPages: number
-          dueDate: string
-          totalAmount: number
-          depositAmount: number
-          status: OrderStatus
-        }>
+        data: Partial<OrderData>
       },
       context: GraphQLContext
     ) => {
+      if (!context.currentUser) {
+        throw new Error('Please login to continue')
+      }
+
       try {
+        // Fetch the order to verify ownership
+        const order = await context.prisma.order.findUnique({
+          where: { id: orderId },
+        })
+
+        if (!order) {
+          throw new Error('Order not found')
+        }
+
+        if (order.studentId !== context.currentUser.id) {
+          throw new Error('Unauthorized access to order')
+        }
+
+        // Proceed with the update
         const updatedOrder = await context.prisma.order.update({
           where: { id: orderId },
           data,
         })
+
         return updatedOrder
       } catch (error) {
         console.error(
           'Error updating order:',
           error instanceof Error ? error.message : error
         )
-        throw new Error('Could not update order')
+        throw new Error('Unauthorized access to order')
       }
     },
   },

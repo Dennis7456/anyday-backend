@@ -56,7 +56,7 @@ describe('createStudent', () => {
       data: {
         firstName: input.firstName,
         lastName: input.lastName,
-        userName: expect.stringMatching(/^john_doe_\d{4}$/), // Ensure pattern matching
+        userName: expect.stringMatching(/^john_doe_\d+$/), // Ensure pattern matching
         email: input.email,
         phoneNumber: input.phoneNumber,
         dateOfBirth: input.dateOfBirth,

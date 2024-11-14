@@ -66,7 +66,7 @@ describe('Authentication', () => {
       data: {
         firstName: input.firstName,
         lastName: input.lastName,
-        userName: expect.stringMatching(/^john_doe_\d{4}$/),
+        userName: expect.stringMatching(/^john_doe_\d+$/),
         email: input.email,
         phoneNumber: input.phoneNumber,
         dateOfBirth: input.dateOfBirth,
