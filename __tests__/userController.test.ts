@@ -4,7 +4,10 @@ import { sendVerificationEmail } from '../src/services/sendVerificationEmail';
 import { v4 as uuidv4 } from 'uuid';
 
 // Mock the dependencies
-jest.mock('../src/services/redisClient');
+jest.mock('../src/services/redisClient', () => ({
+  setEx: jest.fn(),
+  get: jest.fn(),
+}));
 jest.mock('../src/services/sendVerificationEmail');
 jest.mock('uuid', () => ({
   v4: jest.fn().mockReturnValue('mocked-verification-token'),
