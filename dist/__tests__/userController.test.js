@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const userController_1 = require("../src/controllers/userController");
 const sendVerificationEmail_1 = require("../src/services/sendVerificationEmail");
-// Mock the dependencies
+// Mock dependencies
 jest.mock('../src/services/redisClient', () => {
     return {
         setEx: jest.fn(),
