@@ -2,18 +2,18 @@ import { userResolvers } from '../src/controllers/userController';
 import { sendVerificationEmail } from '../src/services/sendVerificationEmail';
 import { v4 as uuidv4 } from 'uuid';
 
-// Mock the dependencies
+// Mock dependencies
 jest.mock('../src/services/redisClient', () => {
   return {
     setEx: jest.fn(),
-  get: jest.fn(),
-  }
+    get: jest.fn(),
+  };
 });
+
 jest.mock('../src/services/sendVerificationEmail');
 jest.mock('uuid', () => ({
   v4: jest.fn().mockReturnValue('mocked-verification-token'),
 }));
-
 
 // Import the redisClient mock after defining it to avoid the error
 import redisClient from '../src/services/redisClient';
@@ -61,7 +61,7 @@ describe('registerAndCreateOrder', () => {
     // Mock Redis to simulate an error
     (redisClient.setEx as jest.Mock).mockRejectedValue(new Error('Redis error'));
 
-    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => {});
     const result = await userResolvers.Mutation.registerAndCreateOrder(null, { input });
 
     expect(result.success).toBe(false);
@@ -74,5 +74,4 @@ describe('registerAndCreateOrder', () => {
 
     consoleErrorMock.mockRestore();
   });
-
 });

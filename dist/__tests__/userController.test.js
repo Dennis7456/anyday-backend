@@ -13,17 +13,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const userController_1 = require("../src/controllers/userController");
-const redisClient_1 = __importDefault(require("../src/services/redisClient"));
 const sendVerificationEmail_1 = require("../src/services/sendVerificationEmail");
 // Mock the dependencies
-jest.mock('../src/services/redisClient', () => ({
-    setEx: jest.fn(),
-    get: jest.fn(),
-}));
+jest.mock('../src/services/redisClient', () => {
+    return {
+        setEx: jest.fn(),
+        get: jest.fn(),
+    };
+});
 jest.mock('../src/services/sendVerificationEmail');
 jest.mock('uuid', () => ({
     v4: jest.fn().mockReturnValue('mocked-verification-token'),
 }));
+// Import the redisClient mock after defining it to avoid the error
+const redisClient_1 = __importDefault(require("../src/services/redisClient"));
 describe('registerAndCreateOrder', () => {
     const input = {
         email: 'test@example.com',
