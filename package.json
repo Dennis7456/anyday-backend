@@ -17,7 +17,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,graphql}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,graphql}\"",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "lint:fix": "eslint \"app/**/*.{ts,tsx}\" --fix",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "validate": "npm -s run format:check && npm -s run lint && npm -s run format && npm -s run lint:fix"
   },
   "lint-staged": {

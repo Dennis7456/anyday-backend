@@ -199,10 +199,13 @@ export const orderResolvers = {
 
         return updatedOrder
       } catch (error) {
-        console.error(
-          'Error updating order:',
-          error instanceof Error ? error.message : error
-        )
+        if (process.env.NODE_ENV !== 'test') {
+          console.error(
+            'Error updating order:',
+            error instanceof Error ? error.message : error
+          )
+        }
+
         throw new Error('Unauthorized access to order')
       }
     },
