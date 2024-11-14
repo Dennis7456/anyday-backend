@@ -16,7 +16,10 @@ const userController_1 = require("../src/controllers/userController");
 const redisClient_1 = __importDefault(require("../src/services/redisClient"));
 const sendVerificationEmail_1 = require("../src/services/sendVerificationEmail");
 // Mock the dependencies
-jest.mock('../src/services/redisClient');
+jest.mock('../src/services/redisClient', () => ({
+    setEx: jest.fn(),
+    get: jest.fn(),
+}));
 jest.mock('../src/services/sendVerificationEmail');
 jest.mock('uuid', () => ({
     v4: jest.fn().mockReturnValue('mocked-verification-token'),
