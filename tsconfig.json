@@ -18,5 +18,10 @@
     "__tests__/**/*.ts",
     "src/types/*"
   ],             
-  "exclude": ["node_modules"]     // Exclude the node_modules folder
+  "exclude": [
+    "node_modules",
+    "__tests__",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    ]     // Exclude the node_modules folder
 }
