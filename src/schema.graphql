@@ -260,6 +260,7 @@ type AuthPayload {
 # Queries
 type Query {
   info: String!
+  test: String!
   users: [User!]!
   user(id: ID!): User
   loggedInUser: User!

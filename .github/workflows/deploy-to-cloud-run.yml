@@ -1,0 +1,36 @@
+name: Build and Deploy to Google Cloud Artifact Registry
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      GAR_LOCATION: "us-central1"
+      PROJECT_ID: "anyday-essay"
+      REPO_NAME: "cloud-run-source-deploy"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configure Docker to use the gcloud command-line tool as a credential helper
+        run: |
+          gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          docker build -t "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/anyday-essay-fastify-app:$GITHUB_SHA" .
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/anyday-essay-fastify-app:$GITHUB_SHA"
