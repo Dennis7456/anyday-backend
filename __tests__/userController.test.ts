@@ -1,22 +1,19 @@
-import { userResolvers } from '../src/controllers/userController';
-import { sendVerificationEmail } from '../src/services/sendVerificationEmail';
-import { v4 as uuidv4 } from 'uuid';
-
-// Mock dependencies
-jest.mock('../src/services/redisClient', () => {
+jest.mock('../src/services/redisClient');
+jest.mock('../src/services/sendVerificationEmail');
+jest.mock('uuid', () => {
+  const originalModule = jest.requireActual('uuid');
   return {
-    setEx: jest.fn(),
-    get: jest.fn(),
+    __esModule: true,
+    ...originalModule,
+    v4: jest.fn().mockReturnValue('mocked-verification-token'),
   };
 });
 
-jest.mock('../src/services/sendVerificationEmail');
-jest.mock('uuid', () => ({
-  v4: jest.fn().mockReturnValue('mocked-verification-token'),
-}));
 
-// Import the redisClient mock after defining it to avoid the error
-import redisClient from '../src/services/redisClient';
+import { userResolvers } from '../src/controllers/userController';
+import { redisClient } from '../src/services/redisClient';
+import { sendVerificationEmail } from '../src/services/sendVerificationEmail';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('registerAndCreateOrder', () => {
   const input = {
@@ -28,8 +25,13 @@ describe('registerAndCreateOrder', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.resetAllMocks();
   });
+
+  beforeEach(() => {
+    // jest.clearAllMocks();
+    // jest.resetAllMocks();
+  });
+
 
   it('should successfully send a verification email and store data in Redis', async () => {
     // Mock Redis and email function success
@@ -61,7 +63,7 @@ describe('registerAndCreateOrder', () => {
     // Mock Redis to simulate an error
     (redisClient.setEx as jest.Mock).mockRejectedValue(new Error('Redis error'));
 
-    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
     const result = await userResolvers.Mutation.registerAndCreateOrder(null, { input });
 
     expect(result.success).toBe(false);

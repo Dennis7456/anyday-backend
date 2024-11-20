@@ -9,6 +9,6 @@ if (!stripeSecretKey) {
   throw new Error('STRIPE_SECRET_KEY environment variable is not set.')
 }
 
-export const stripe = new Stripe(stripeSecretKey, {
+export const stripeClient = new Stripe(stripeSecretKey, {
   apiVersion: '2024-10-28.acacia',
 })

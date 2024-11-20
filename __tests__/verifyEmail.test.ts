@@ -1,18 +1,31 @@
-import { userResolvers } from '../src/controllers/userController';
-import redisClient from '../src/services/redisClient';
+// __tests__/verifyEmail.test.ts
+jest.mock('redis', () => {
+  const mRedisClient = {
+    connect: jest.fn(),
+    on: jest.fn(),
+    get: jest.fn(),
+    del: jest.fn(),
+  };
 
-// Mock redisClient
-jest.mock('../src/services/redisClient', () => ({
-  get: jest.fn(),
-}));
+  return {
+    createClient: jest.fn(() => mRedisClient),
+  };
+});
+
+import { userResolvers } from '../src/controllers/userController';
+import { redisClient } from '../src/services/redisClient';
 
 describe('verifyEmail', () => {
   const validToken = 'valid-token';
   const invalidToken = 'invalid-token';
 
-  afterEach(() => {
+  const mockedRedisClient = redisClient as jest.Mocked<typeof redisClient>;
+
+  beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetAllMocks();
   });
+
 
   it('should return valid response for a valid token', async () => {
     const cachedData = JSON.stringify({
@@ -22,14 +35,13 @@ describe('verifyEmail', () => {
       dueDate: new Date('2024-12-01'),
     });
 
-    // Mock Redis to return cached data for the valid token
-    (redisClient.get as jest.Mock).mockResolvedValue(cachedData);
+    mockedRedisClient.get.mockResolvedValue(cachedData);
 
     const result = await userResolvers.Mutation.verifyEmail(null, { token: validToken });
 
     expect(result.valid).toBe(true);
     expect(result.message).toBe('Email verified. Please complete your registration.');
-    expect(result.redirectUrl).toBe(`${process.env.BASE_URL}/complete-registration`); // Ensure that the URL is correct
+    expect(result.redirectUrl).toBe(`${process.env.BASE_URL}/complete-registration`);
     expect(result.token).toBe(validToken);
 
     // Ensure Redis was called with the correct token
@@ -37,8 +49,7 @@ describe('verifyEmail', () => {
   });
 
   it('should return invalid response for an invalid or expired token', async () => {
-    // Mock Redis to return null for the invalid token
-    (redisClient.get as jest.Mock).mockResolvedValue(null);
+    mockedRedisClient.get.mockResolvedValue(null);
 
     const result = await userResolvers.Mutation.verifyEmail(null, { token: invalidToken });
 

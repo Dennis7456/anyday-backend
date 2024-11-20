@@ -5,7 +5,7 @@ import { GraphQLContext } from '../context/context'
 import { APP_SECRET, REGISTER_EXPIRATION, baseUrl } from '../config/config'
 import { v4 as uuidv4 } from 'uuid'
 import { sendVerificationEmail } from '../services/sendVerificationEmail'
-import redisClient from '../services/redisClient'
+import { redisClient } from '../services/redisClient'
 
 export type Role = 'STUDENT' | 'ADMIN' | 'WRITER' | 'QA'
 
@@ -158,7 +158,7 @@ export const userResolvers = {
     ): Promise<{ valid: boolean; message: string }> => {
       const cachedData = await redisClient.get(token)
       if (!cachedData) {
-        throw new Error('Invalid or expired token')
+        throw new Error('Invalid or expired token.')
       }
       // const { email, paperType, numberOfPages, dueDate } =
       //   JSON.parse(cachedData)

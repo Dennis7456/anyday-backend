@@ -8,7 +8,7 @@ const mailjetClient = Mailjet.apiConnect(
   process.env.MAILJET_SECRET_KEY || ''
 )
 
-export const sendOrderSuccessEmail = async (
+export async function sendOrderSuccessEmail(
   to: string,
   instructions: string,
   paperType: string,
@@ -18,7 +18,7 @@ export const sendOrderSuccessEmail = async (
   depositAmount: number,
   status: string,
   uploadedFiles: { url: string; name: string }[]
-) => {
+) {
   const uploadedFilesList = uploadedFiles
     .map((file) => `<li><a href="${file.url}">${file.name}</a></li>`)
     .join('')

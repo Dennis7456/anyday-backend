@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { stripe } from './client/stripeClient'
+import { stripeClient } from './client/stripeClient'
 import Stripe from 'stripe'
 import {
   ApolloClient,
@@ -106,7 +106,11 @@ export async function registerStripeWebHookHandlerRoute(
     }
 
     try {
-      const event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret)
+      const event = stripeClient.webhooks.constructEvent(
+        rawBody,
+        sig,
+        webhookSecret
+      )
 
       switch (event.type) {
         case 'checkout.session.completed': {

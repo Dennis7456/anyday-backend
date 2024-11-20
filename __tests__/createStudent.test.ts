@@ -35,8 +35,10 @@ describe('createStudent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => { });
+    jest.resetAllMocks();
   });
+
 
   it('should create a student successfully', async () => {
     (hash as jest.Mock).mockResolvedValue('hashedPassword');
@@ -83,15 +85,15 @@ describe('createStudent', () => {
 
   it('should throw an error if there is a database error', async () => {
     (hash as jest.Mock).mockResolvedValue('hashedPassword');
-    
+
     // Reject the Prisma mock with a database error
     mockPrismaCreate.mockRejectedValue(new Error('Database error'));
-  
+
     // Wrap the call in an async assertion to ensure it's caught
     await expect(userResolvers.Mutation.createStudent(null, { input }, context))
       .rejects
       .toThrow('An error occurred while creating the student.');
-  
+
     // Ensure the mock was called
     expect(mockPrismaCreate).toHaveBeenCalled();
   });

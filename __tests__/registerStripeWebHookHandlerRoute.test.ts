@@ -1,29 +1,27 @@
+jest.mock('../src/routes/client/stripeClient', () => {
+    const mStripe = {
+        webhooks: {
+            constructEvent: jest.fn(),
+        },
+    };
+    return {
+        stripeClient: mStripe,
+    };
+});
+
+jest.mock('../src/services/sendPaymentConfirmationEmail');
+
 import fastify, { FastifyInstance } from 'fastify';
 import { registerStripeWebHookHandlerRoute } from '../src/routes/stripeWebHookHandlerRoute';
-import { stripe } from '../src/routes/client/stripeClient';
+import { stripeClient } from '../src/routes/client/stripeClient';
 import { ApolloClient } from '@apollo/client/core';
 import { sendPaymentConfirmationEmail } from '../src/services/sendPaymentConfirmationEmail';
 import gql from 'graphql-tag';
 import nock from 'nock';
 
-jest.mock('../src/routes/client/stripeClient', () => ({
-    stripe: {
-        webhooks: {
-            constructEvent: jest.fn(),
-        },
-    },
-}));
-
-jest.mock('../src/services/sendPaymentConfirmationEmail');
-
 describe('Stripe Webhook Handler', () => {
     let app: FastifyInstance;
     let mockedApolloClient: ApolloClient<any>;
-    const MOCK_MUTATION = gql`
-    mutation MockMutation($id: String!) {
-      mockField(id: $id)
-    }
-  `;
 
     beforeAll(() => {
         app = fastify();
@@ -45,9 +43,6 @@ describe('Stripe Webhook Handler', () => {
     afterAll(() => {
         app.close();
         nock.enableNetConnect();
-    });
-
-    beforeEach(() => {
         jest.clearAllMocks();
     });
 
@@ -69,7 +64,8 @@ describe('Stripe Webhook Handler', () => {
             },
         };
 
-        (stripe.webhooks.constructEvent as jest.Mock).mockReturnValue(mockEvent);
+        (stripeClient.webhooks.constructEvent as jest.Mock).mockReturnValue(mockEvent);
+
         (mockedApolloClient.mutate as jest.Mock)
             .mockResolvedValueOnce({
                 data: { createPayment: { id: 'payment_id', amount: 20.0, paymentStatus: 'COMPLETED' } },
@@ -77,6 +73,7 @@ describe('Stripe Webhook Handler', () => {
             .mockResolvedValueOnce({
                 data: { updateOrderStatus: { id: 'order_id', status: 'IN_PROGRESS' } },
             });
+
         (sendPaymentConfirmationEmail as jest.Mock).mockResolvedValueOnce(undefined);
 
         const response = await app.inject({
@@ -90,7 +87,7 @@ describe('Stripe Webhook Handler', () => {
         });
 
         expect(response.statusCode).toBe(200);
-        expect(stripe.webhooks.constructEvent).toHaveBeenCalledWith(
+        expect(stripeClient.webhooks.constructEvent).toHaveBeenCalledWith(
             JSON.stringify(mockEvent),
             'valid_signature',
             process.env.STRIPE_WEBHOOK_SECRET

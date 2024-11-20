@@ -1,3 +1,10 @@
+jest.mock('../src/services/sendOrderSuccessEmail', () => {
+  return {
+    __esModule: true, // Use this property to ensure correct handling of ES modules
+    sendOrderSuccessEmail: jest.fn(),
+  };
+});
+
 import { gql } from 'apollo-server';
 import { orderResolvers } from '../src/controllers/orderController'; // Adjust path as needed
 import { GraphQLContext } from '../src/context/context'; // Your GraphQL context
@@ -5,9 +12,8 @@ import { sendOrderSuccessEmail } from '../src/services/sendOrderSuccessEmail'; /
 import { PrismaClient } from '@prisma/client';
 import { Role } from '@prisma/client';
 
-jest.mock('../src/services/sendOrderSuccessEmail', () => ({
-  sendOrderSuccessEmail: jest.fn(),
-}));
+console.log('Is sendOrderSuccessEmail a mock function?', jest.isMockFunction(sendOrderSuccessEmail));
+// Should log: true
 
 // Mocking Prisma client methods
 const mockPrisma = {
@@ -175,6 +181,7 @@ describe('Order Resolvers', () => {
     );
   });
 
+
   it('throws error if student is not found when creating an order', async () => {
     const createOrderInput = {
       studentId: '999', // Invalid student ID
@@ -207,8 +214,8 @@ describe('Order Resolvers', () => {
     };
 
     await expect(orderResolvers.Query.orders(null, {}, contextWithoutUser))
-    .rejects
-    .toThrow('Please login');
+      .rejects
+      .toThrow('Please login');
   });
 
   it('throws an error when trying to fetch a specific order without authentication', async () => {
@@ -216,31 +223,31 @@ describe('Order Resolvers', () => {
       prisma: mockPrisma as unknown as PrismaClient,
       currentUser: null,
     };
-  
+
     const orderId = '1';
 
     await expect(orderResolvers.Query.order(null, { id: orderId }, contextWithoutUser))
-    .rejects
-    .toThrow('Please login to continue');
+      .rejects
+      .toThrow('Please login to continue');
   });
-  
+
   it('throws an error when trying to access an order that does not belong to the user', async () => {
     const mockUser = {
       id: 'user-1',
-  firstName: 'John',
-  lastName: 'Doe',
-  userName: 'johndoe',
-  email: 'john.doe@example.com',
-  phoneNumber: '1234567890',
-  dateOfBirth: new Date('2000-01-01'),
-  password: 'hashed_password', // Can be any mock password
-  role: Role.STUDENT, // Assuming 'STUDENT' is a valid role in your application
-  isVerified: true,
-  profilePicture: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  emailNotifications: true,
-  inAppNotifications: true,
+      firstName: 'John',
+      lastName: 'Doe',
+      userName: 'johndoe',
+      email: 'john.doe@example.com',
+      phoneNumber: '1234567890',
+      dateOfBirth: new Date('2000-01-01'),
+      password: 'hashed_password', // Can be any mock password
+      role: Role.STUDENT, // Assuming 'STUDENT' is a valid role in your application
+      isVerified: true,
+      profilePicture: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailNotifications: true,
+      inAppNotifications: true,
     }; // Logged-in user
     const contextWithUser: GraphQLContext = {
       prisma: {
@@ -250,9 +257,9 @@ describe('Order Resolvers', () => {
       } as unknown as PrismaClient,
       currentUser: mockUser,
     };
-  
+
     const orderId = '2'; // Some order ID
-  
+
     await expect(orderResolvers.Query.order(null, { id: orderId }, contextWithUser))
       .rejects
       .toThrow('Order not found or you do not have permission to view it');
@@ -261,20 +268,20 @@ describe('Order Resolvers', () => {
   it('returns the order when the user is authenticated and owns the order', async () => {
     const mockUser = {
       id: 'user-1',
-  firstName: 'John',
-  lastName: 'Doe',
-  userName: 'johndoe',
-  email: 'john.doe@example.com',
-  phoneNumber: '1234567890',
-  dateOfBirth: new Date('2000-01-01'),
-  password: 'hashed_password', // Can be any mock password
-  role: Role.STUDENT, // Assuming 'STUDENT' is a valid role in your application
-  isVerified: true,
-  profilePicture: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  emailNotifications: true,
-  inAppNotifications: true,
+      firstName: 'John',
+      lastName: 'Doe',
+      userName: 'johndoe',
+      email: 'john.doe@example.com',
+      phoneNumber: '1234567890',
+      dateOfBirth: new Date('2000-01-01'),
+      password: 'hashed_password', // Can be any mock password
+      role: Role.STUDENT, // Assuming 'STUDENT' is a valid role in your application
+      isVerified: true,
+      profilePicture: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailNotifications: true,
+      inAppNotifications: true,
     };
     const mockOrder = {
       id: '1',
@@ -288,7 +295,7 @@ describe('Order Resolvers', () => {
       status: 'Pending',
       uploadedFiles: [],
     };
-  
+
     const contextWithUser: GraphQLContext = {
       prisma: {
         order: {
@@ -297,9 +304,9 @@ describe('Order Resolvers', () => {
       } as unknown as PrismaClient,
       currentUser: mockUser,
     };
-  
+
     const orderId = '1';
-  
+
     const result = await orderResolvers.Query.order(null, { id: orderId }, contextWithUser);
     expect(result).toEqual(mockOrder);
   });
@@ -307,21 +314,21 @@ describe('Order Resolvers', () => {
   it('throws an error when trying to access orders that do not belong to the user', async () => {
     const mockUser = {
       id: 'user-1',
-  firstName: 'John',
-  lastName: 'Doe',
-  userName: 'johndoe',
-  email: 'john.doe@example.com',
-  phoneNumber: '1234567890',
-  dateOfBirth: new Date('2000-01-01'),
-  password: 'hashed_password', // Can be any mock password
-  role: Role.STUDENT, // Assuming 'STUDENT' is a valid role in your application
-  isVerified: true,
-  profilePicture: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  emailNotifications: true,
-  inAppNotifications: true,
-     };
+      firstName: 'John',
+      lastName: 'Doe',
+      userName: 'johndoe',
+      email: 'john.doe@example.com',
+      phoneNumber: '1234567890',
+      dateOfBirth: new Date('2000-01-01'),
+      password: 'hashed_password', // Can be any mock password
+      role: Role.STUDENT, // Assuming 'STUDENT' is a valid role in your application
+      isVerified: true,
+      profilePicture: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailNotifications: true,
+      inAppNotifications: true,
+    };
     const unauthorizedOrders = [
       {
         id: '1',
@@ -336,7 +343,7 @@ describe('Order Resolvers', () => {
         uploadedFiles: [],
       },
     ];
-  
+
     const contextWithUser: GraphQLContext = {
       prisma: {
         order: {
@@ -345,7 +352,7 @@ describe('Order Resolvers', () => {
       } as unknown as PrismaClient,
       currentUser: mockUser,
     };
-  
+
     await expect(orderResolvers.Query.orders(null, {}, contextWithUser))
       .rejects
       .toThrow('Unauthorized access to orders');
@@ -354,20 +361,20 @@ describe('Order Resolvers', () => {
   it('returns orders when the user is authenticated and owns the orders', async () => {
     const mockUser = {
       id: 'user-1',
-  firstName: 'John',
-  lastName: 'Doe',
-  userName: 'johndoe',
-  email: 'john.doe@example.com',
-  phoneNumber: '1234567890',
-  dateOfBirth: new Date('2000-01-01'),
-  password: 'hashed_password', // Can be any mock password
-  role: Role.STUDENT, // Assuming 'STUDENT' is a valid role in your application
-  isVerified: true,
-  profilePicture: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  emailNotifications: true,
-  inAppNotifications: true,
+      firstName: 'John',
+      lastName: 'Doe',
+      userName: 'johndoe',
+      email: 'john.doe@example.com',
+      phoneNumber: '1234567890',
+      dateOfBirth: new Date('2000-01-01'),
+      password: 'hashed_password', // Can be any mock password
+      role: Role.STUDENT, // Assuming 'STUDENT' is a valid role in your application
+      isVerified: true,
+      profilePicture: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailNotifications: true,
+      inAppNotifications: true,
     };
     const userOrders = [
       {
@@ -395,7 +402,7 @@ describe('Order Resolvers', () => {
         uploadedFiles: [],
       },
     ];
-  
+
     const contextWithUser: GraphQLContext = {
       prisma: {
         order: {
@@ -404,7 +411,7 @@ describe('Order Resolvers', () => {
       } as unknown as PrismaClient,
       currentUser: mockUser,
     };
-  
+
     const result = await orderResolvers.Query.orders(null, {}, contextWithUser);
     expect(result).toEqual(userOrders);
     expect(contextWithUser.prisma.order.findMany).toHaveBeenCalledWith({
@@ -412,7 +419,7 @@ describe('Order Resolvers', () => {
       include: { uploadedFiles: true },
     });
   });
-  
+
 });
 
 describe('updateOrder Resolver', () => {
@@ -457,10 +464,10 @@ describe('updateOrder Resolver', () => {
         inAppNotifications: true,
       },
     };
-  
+
     const orderId = '1';
     const data = { instructions: 'Updated instructions' };
-  
+
     const existingOrder = {
       id: orderId,
       instructions: 'Old instructions',
@@ -473,23 +480,23 @@ describe('updateOrder Resolver', () => {
       studentId: 'authenticated-user-id', // Match the currentUser.id
       uploadedFiles: [],
     };
-  
+
     // Mock findUnique to return the existing order
     mockPrisma.order.findUnique = jest.fn().mockResolvedValue(existingOrder);
-  
+
     // Mock update to return the updated order
     mockPrisma.order.update = jest.fn().mockResolvedValue({
       ...existingOrder,
       instructions: 'Updated instructions', // Update the instructions
     });
-  
+
     const result = await orderResolvers.Mutation.updateOrder(null, { orderId, data }, contextWithUser);
-  
+
     expect(result).toEqual({
       ...existingOrder,
       instructions: 'Updated instructions',
     });
-  
+
     // Ensure that findUnique and update were called with the right parameters
     expect(mockPrisma.order.findUnique).toHaveBeenCalledWith({ where: { id: orderId } });
     expect(mockPrisma.order.update).toHaveBeenCalledWith({
@@ -497,7 +504,7 @@ describe('updateOrder Resolver', () => {
       data,
     });
   });
-  
+
 
   it('throws an error when trying to update an order that does not belong to the user', async () => {
     const contextWithUser: GraphQLContext = {
@@ -520,10 +527,10 @@ describe('updateOrder Resolver', () => {
         inAppNotifications: true,
       },
     };
-  
+
     const orderId = '1';
     const data = { instructions: 'Updated instructions' };
-  
+
     // Mock findUnique to return an order that belongs to a different user
     const unauthorizedOrder = {
       id: orderId,
@@ -537,14 +544,14 @@ describe('updateOrder Resolver', () => {
       studentId: 'other-user-id',  // Different studentId from the currentUser
       uploadedFiles: [],
     };
-  
+
     mockPrisma.order.findUnique = jest.fn().mockResolvedValue(unauthorizedOrder);
     mockPrisma.order.update = jest.fn();
-  
+
     await expect(orderResolvers.Mutation.updateOrder(null, { orderId, data }, contextWithUser))
       .rejects
       .toThrow('Unauthorized access to order');
-  });  
+  });
 
   it('throws an error if the update fails due to database issue', async () => {
     const contextWithUser: GraphQLContext = {
@@ -675,6 +682,69 @@ describe('createOrder Mutation', () => {
       100,                     // depositAmount
       'PENDING',               // status
       expect.any(Array),       // uploadedFiles (array of file objects)
+    );
+  });
+
+  it('creates a new order with authentication and sends an order success email to notify the student', async () => {
+    const createOrderInput = {
+      studentId: '1',
+      instructions: 'Test order 2',
+      paperType: 'Research Paper',
+      numberOfPages: 10,
+      dueDate: new Date(),
+      uploadedFiles: [
+        {
+          url: 'http://example.com/file1.pdf',
+          name: 'file1.pdf',
+          size: '1MB',
+          type: 'application/pdf',
+        },
+      ],
+    };
+
+    // Mock Prisma operations
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: '1',
+      email: 'student@example.com',
+    });
+
+    mockPrisma.order.create.mockResolvedValue({
+      id: '2',
+      studentId: '1',
+      instructions: 'Test order 2',
+      paperType: 'Research Paper',
+      numberOfPages: 10,
+      dueDate: new Date(),
+      totalAmount: 200,
+      depositAmount: 100,
+      status: 'PENDING',
+      uploadedFiles: [],
+    });
+
+    // Call the mutation
+    const result = await orderResolvers.Mutation.createOrder(
+      null,
+      { input: createOrderInput },
+      mockContext
+    );
+
+    // Assertions
+    expect(result.success).toBe(true);
+    expect(result.message).toBe('Order created successfully. A confirmation email has been sent.');
+    expect(result.order).toHaveProperty('id', '2');
+    expect(result.order.totalAmount).toBe(200);
+
+    // Check `sendOrderSuccessEmail` mock calls
+    expect(sendOrderSuccessEmail).toHaveBeenCalledWith(
+      'student@example.com',
+      'Test order 2',
+      'Research Paper',
+      10,
+      expect.any(String), // dueDate
+      200,
+      100,
+      'PENDING',
+      expect.any(Array) // uploadedFiles
     );
   });
 });

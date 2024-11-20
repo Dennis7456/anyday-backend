@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import redisClient from '../services/redisClient'
+import { redisClient } from '../services/redisClient'
 
 export function registerGetRedisDataRoute(server: FastifyInstance) {
   server.route({

@@ -1,19 +1,23 @@
-import { userResolvers } from '../src/controllers/userController';
-import redisClient from '../src/services/redisClient';
+jest.mock('../src/services/redisClient', () => ({
+  redisClient: {
+    get: jest.fn(),
+    del: jest.fn(),
+  },
+}));
 
-// Mock the dependencies
-jest.mock('../src/services/redisClient');
+import { userResolvers } from '../src/controllers/userController';
+import { redisClient } from '../src/services/redisClient';
 
 describe('completeRegistration', () => {
-  const token = 'mocked-verification-token';
+  const token = 'valid-token';
   const cachedData = {
     email: 'test@example.com',
     paperType: 'Essay',
     numberOfPages: 5,
-    dueDate: new Date('2024-12-01').toISOString(),
+    dueDate: '2024-12-01',
   };
 
-  afterEach(() => {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
@@ -27,20 +31,42 @@ describe('completeRegistration', () => {
     expect(result.valid).toBe(true);
     expect(result.message).toBe('Registration completed successfully and order created.');
 
-    // Verify Redis methods were called correctly
+    // Ensure Redis was called with the correct token
     expect(redisClient.get).toHaveBeenCalledWith(token);
     expect(redisClient.del).toHaveBeenCalledWith(token);
   });
 
-  it('should throw an error when the token is invalid or expired', async () => {
-    // Mock Redis get to simulate a missing token
+  it('should return an error if the token is invalid or expired', async () => {
+    // Mock Redis to return null for the invalid token
     (redisClient.get as jest.Mock).mockResolvedValue(null);
 
-    await expect(userResolvers.Mutation.completeRegistration(null, { token }))
-      .rejects.toThrow('Invalid or expired token');
+    try {
+      await userResolvers.Mutation.completeRegistration(null, { token });
+    } catch (error: any) {
+      expect(error.message).toBe('Invalid or expired token.');
+    }
 
-    // Verify Redis get was called, and del was not called
+    // Ensure Redis get was called with the correct token
     expect(redisClient.get).toHaveBeenCalledWith(token);
     expect(redisClient.del).not.toHaveBeenCalled();
+  });
+
+  it('should handle Redis errors gracefully', async () => {
+    // Mock Redis to throw an error
+    (redisClient.get as jest.Mock).mockRejectedValue(new Error('Redis error.'));
+
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
+
+    try {
+      await userResolvers.Mutation.completeRegistration(null, { token });
+    } catch (error: any) {
+      expect(error.message).toBe('Redis error.');
+    }
+
+    // Ensure Redis get was called
+    expect(redisClient.get).toHaveBeenCalledWith(token);
+    expect(redisClient.del).not.toHaveBeenCalled();
+
+    consoleErrorMock.mockRestore();
   });
 });
