@@ -1,42 +1,64 @@
-import { FastifyInstance, FastifyRequest } from 'fastify'
-import { ApolloClient, InMemoryCache, gql, HttpLink } from '@apollo/client/core'
-import { sendPaymentConfirmationEmail } from '../services/sendPaymentConfirmationEmail'
-import fetch from 'cross-fetch'
+import { FastifyInstance } from 'fastify'
+import { stripe } from './client/stripeClient'
 import Stripe from 'stripe'
+import {
+  ApolloClient,
+  // InMemoryCache,
+  // HttpLink,
+} from '@apollo/client/core'
+import gql from 'graphql-tag'
+import { sendPaymentConfirmationEmail } from '../services/sendPaymentConfirmationEmail'
+// import fetch from 'cross-fetch';
 import dotenv from 'dotenv'
+import { StatusCodes } from 'http-status-codes'
 
 dotenv.config()
 
-export async function registerStripeWebHookHandlerRoute(app: FastifyInstance) {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY
-  const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+const backendUrl = process.env.BACKEND_URL
 
-  if (!stripeSecretKey) {
-    throw new Error('STRIPE_SECRET_KEY environment variable is not set.')
-  }
+if (!stripeWebhookSecret) {
+  throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not set.')
+}
 
-  if (!stripeWebhookSecret) {
-    throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not set.')
-  }
+if (!backendUrl) {
+  throw new Error('BACKEND_URL environment variable is not set.')
+}
 
-  // Initialize Stripe client
-  const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2024-10-28.acacia',
-  })
+const webhookSecret: string = stripeWebhookSecret
 
-  // Initialize ApolloClient
-  const apolloClient = new ApolloClient({
-    link: new HttpLink({
-      uri: 'https://your-graphql-endpoint.com',
-      fetch,
-      headers: {
-        authorization: `Bearer ${process.env.GRAPHQL_API_KEY}`,
-      },
-    }),
-    cache: new InMemoryCache(),
-  })
+export async function registerStripeWebHookHandlerRoute(
+  app: FastifyInstance,
+  apolloClient: ApolloClient<any>
+) {
+  app.addContentTypeParser(
+    'application/json',
+    { parseAs: 'string' },
+    (req, body: string, done) => {
+      ;(req as any).rawBody = body
+      try {
+        const json = JSON.parse(body)
+        done(null, json)
+      } catch (err) {
+        const error = err as Error
+        error.message = 'Invalid JSON'
+        ;(error as any).statusCode = StatusCodes.BAD_REQUEST
+        done(error, undefined)
+      }
+    }
+  )
 
-  // Define GraphQL mutations
+  // const apolloClient = new ApolloClient({
+  //   link: new HttpLink({
+  //     uri: backendUrl,
+  //     fetch,
+  //     headers: {
+  //       authorization: `Bearer ${process.env.GRAPHQL_API_KEY}`,
+  //     },
+  //   }),
+  //   cache: new InMemoryCache(),
+  // });
+
   const CREATE_PAYMENT_MUTATION = gql`
     mutation CreatePayment(
       $orderId: String!
@@ -66,59 +88,33 @@ export async function registerStripeWebHookHandlerRoute(app: FastifyInstance) {
     }
   `
 
-  // Capture raw body before Fastify parses it
-  app.addHook('onRequest', (request: FastifyRequest, reply, done) => {
-    const body: Buffer[] = [] // Explicitly type as Buffer array
+  app.post('/webhooks/stripe', async (request, reply) => {
+    const sig = request.headers['stripe-signature']
 
-    // Collect the body chunks
-    request.raw.on('data', (chunk: Buffer) => {
-      body.push(chunk)
-    })
+    if (!sig || typeof sig !== 'string') {
+      reply
+        .status(StatusCodes.BAD_REQUEST)
+        .send('Missing or invalid Stripe signature.')
+      return
+    }
 
-    // Once the body is collected, convert it to a buffer and assign it to request.rawBody
-    request.raw.on('end', () => {
-      request.rawBody = Buffer.concat(body)
-      done() // Ensure to call done to signal that the request is ready for processing
-    })
+    const rawBody = (request as any).rawBody as string
 
-    // In case of error during request body handling
-    request.raw.on('error', (err: Error) => {
-      reply.status(400).send('Error reading request body')
-      done(err) // Pass the error to Fastify to handle it
-    })
-  })
+    if (!rawBody) {
+      reply.status(StatusCodes.BAD_REQUEST).send('No raw body provided.')
+      return
+    }
 
-  // Define webhook route without body parsing
-  app.route({
-    method: 'POST',
-    url: '/webhooks/stripe',
-    config: {
-      bodyLimit: 0, // Disable automatic body parsing
-    },
-    handler: async (request, reply) => {
-      const sig = request.headers['stripe-signature'] as string
-      const rawBody = request.rawBody as Buffer
+    try {
+      const event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret)
 
-      // Ensure rawBody is available for signature verification
-      if (!rawBody) {
-        throw new Error('No raw body provided.')
-      }
-
-      try {
-        // Verify the webhook signature
-        const event = stripe.webhooks.constructEvent(
-          rawBody,
-          sig,
-          stripeWebhookSecret
-        )
-
-        // Handle the checkout session completed event
-        if (event.type === 'checkout.session.completed') {
+      switch (event.type) {
+        case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session
           const orderId = session.client_reference_id || ''
           const customerEmail = session.customer_email || ''
           const transactionId = session.id
-          const amount = session.amount_total || 0
+          const amount = (session.amount_total || 0) / 100
 
           console.log('Processing checkout.session.completed event:', {
             orderId,
@@ -128,7 +124,6 @@ export async function registerStripeWebHookHandlerRoute(app: FastifyInstance) {
           })
 
           try {
-            // Execute the CreatePayment mutation
             await apolloClient.mutate({
               mutation: CREATE_PAYMENT_MUTATION,
               variables: {
@@ -139,7 +134,6 @@ export async function registerStripeWebHookHandlerRoute(app: FastifyInstance) {
               },
             })
 
-            // Execute the UpdateOrderStatus mutation
             await apolloClient.mutate({
               mutation: UPDATE_ORDER_STATUS_MUTATION,
               variables: {
@@ -148,29 +142,27 @@ export async function registerStripeWebHookHandlerRoute(app: FastifyInstance) {
               },
             })
 
-            // Send payment confirmation email
             await sendPaymentConfirmationEmail(customerEmail, orderId)
           } catch (error) {
-            console.error(
-              'Error in processing GraphQL mutations or email sending:',
-              error instanceof Error ? error.message : 'Unknown error'
-            )
+            console.error('Error processing GraphQL or email:', error)
+            reply
+              .status(StatusCodes.INTERNAL_SERVER_ERROR)
+              .send('Internal server error.')
+            return
           }
-        } else {
-          // Log unsupported events
-          console.log(`Received unsupported event type: ${event.type}`)
+          break
         }
-
-        // Respond with acknowledgment for all valid events
-        reply.status(200).send({ received: true })
-      } catch (error) {
-        console.error('Webhook error:', error)
-        reply
-          .status(400)
-          .send(
-            `Webhook error: ${error instanceof Error ? error.message : 'Unknown error'}`
-          )
+        default:
+          console.log(`Received unsupported event type: ${event.type}`)
+          break
       }
-    },
+
+      reply.status(StatusCodes.OK).send({ received: true })
+    } catch (error) {
+      console.error('Webhook error:', error)
+      reply.status(StatusCodes.BAD_REQUEST).send({
+        error: `Webhook error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      })
+    }
   })
 }

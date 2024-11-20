@@ -20,6 +20,7 @@ import { AddressInfo } from 'net'
 import { registerListFilesRoute } from './routes/showFileRoute'
 import { registerCreateStripePaymentSessionRoute } from './routes/createStripeSessionRoute'
 import { registerStripeWebHookHandlerRoute } from './routes/stripeWebHookHandlerRoute'
+import { apolloClient } from './routes/client/apolloClient'
 
 dotenv.config()
 
@@ -100,7 +101,7 @@ registerGetRedisDataRoute(app)
 registerUploadFilesRoute(app)
 registerListFilesRoute(app)
 registerCreateStripePaymentSessionRoute(app)
-registerStripeWebHookHandlerRoute(app)
+registerStripeWebHookHandlerRoute(app, apolloClient)
 
 const start = async () => {
   try {
