@@ -15,6 +15,8 @@ export const resolvers = {
     info: (parent: unknown, args: object, context: GraphQLContext) => {
       return `This is the parent: ${parent}. These are the ${args}. This is the ${context}. This works!`
     },
+    test: (parent: unknown, args: object, context: GraphQLContext) =>
+      `This is the parent: ${parent}. These are the ${args}. This is the ${context}. This works!`,
     ...userResolvers.Query,
     ...orderResolvers.Query,
   },

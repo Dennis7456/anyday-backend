@@ -16,6 +16,7 @@ const config: Config.InitialOptions = {
     // transformIgnorePatterns: [
     //     '/node_modules/(?!intl-messageformat|konva|intl-messageformat-parser|node-fetch|d3-hierarchy|@apollo).+\\.(js|cjs)$',
     // ],
+    setupFiles: ['./jest.setup.js'],
 }
 
 export default config;
