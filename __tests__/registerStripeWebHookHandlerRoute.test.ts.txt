@@ -1,0 +1,221 @@
+import { registerStripeWebHookHandlerRoute } from '../src/routes/stripeWebHookHandlerRoute';
+import Fastify, { FastifyInstance } from 'fastify';
+import { ApolloClient } from '@apollo/client/core';
+import dotenv from 'dotenv';
+import request from 'supertest';
+import Stripe from 'stripe';
+import { sendPaymentConfirmationEmail } from '../src/services/sendPaymentConfirmationEmail';
+
+// Mock Apollo Client's mutate method and the sendPaymentConfirmationEmail function
+jest.mock('@apollo/client/core', () => ({
+    ApolloClient: jest.fn().mockImplementation(() => ({
+        mutate: jest.fn(),
+    })),
+}));
+
+// Mock sendPaymentConfirmationEmail correctly
+jest.mock('../src/services/sendPaymentConfirmationEmail', () => ({
+    sendPaymentConfirmationEmail: jest.fn().mockResolvedValue(true), // Adjusted to resolve correctly
+}));
+
+dotenv.config();
+
+let app: FastifyInstance;
+let mockStripeEvent: Stripe.Event;
+
+describe('POST /webhooks/stripe', () => {
+    beforeAll(async () => {
+        app = Fastify();
+        await registerStripeWebHookHandlerRoute(app);
+
+        // Initialize the mock Stripe event with the correct structure
+        mockStripeEvent = {
+            id: 'evt_1QN6z6CaLaPZvBOiLFKAKNjB',
+            object: 'event',
+            type: 'checkout.session.completed',
+            data: {
+                object: {
+                    id: 'ppage_1QN6z6CaLaPZvBOiLFKAKNjB',
+                    object: 'checkout.session',
+                    customer_email: 'test@example.com',
+                    client_secret:"",
+                    consent: null,
+                    consent_collection: null, 
+                    currency_conversion: null, 
+                    custom_fields: undefined,
+                    amount_total: 3000,
+                    amount_subtotal: 2900,
+                    currency: 'usd',
+                    payment_status: 'paid',
+                    client_reference_id: 'order_123',
+                    line_items: {
+                        object: 'list',
+                        data: [
+                            {
+                                id: 'li_1QN6z6CaLaPZvBOiziEONDDt',
+                                object: 'item', // Corrected to 'item'
+                                quantity: 2,
+                                price: {
+                                    id: 'price_1QN6z6CaLaPZvBOiziEONDDt',
+                                    object: 'price',
+                                    active: true,
+                                    billing_scheme: 'per_unit',
+                                    currency: 'usd',
+                                    unit_amount: 1500,
+                                    product: 'prod_12345',
+                                    nickname: 'Standard Plan',
+                                    type: 'one_time',
+                                    recurring: null,
+                                    created: 1633021104,
+                                    custom_unit_amount: null,
+                                    livemode: false,
+                                    lookup_key: 'standard_plan',
+                                    metadata: {
+                                        campaign: 'summer_promo',
+                                        region: 'us',
+                                    },
+                                    tax_behavior: 'exclusive',
+                                    tiers_mode: 'graduated',
+                                    transform_quantity: {
+                                        divide_by: 1,
+                                        round: 'up',
+                                    },
+                                    unit_amount_decimal: '1500.00',
+                                },
+                                amount_discount: 100,
+                                amount_subtotal: 3000,
+                                amount_tax: 0,
+                                amount_total: 3000,
+                                currency: 'usd',
+                            },
+                        ],
+                        has_more: false,
+                        url: '/v1/checkout/sessions/ppage_1QN6z6CaLaPZvBOiLFKAKNjB/line_items',
+                    },
+                    after_expiration: null, // Add missing properties
+                    allow_promotion_codes: false,
+                    automatic_tax: {
+                        enabled: false,
+                        liability: null,
+                        status: null
+                    },
+                    billing_address_collection: 'auto',
+                    created: 1633021104,
+                    customer: 'cus_1234567890',
+                    customer_details: {
+                        name: 'John Doe',
+                        address: null,
+                        email: 'test@example.com',
+                        phone: '+1 1234567890',
+                        tax_exempt: 'none',
+                        tax_ids: [],
+                    },
+                    metadata: {},
+                    mode: 'payment',
+                    payment_intent: 'pi_1QN6z6CaLaPZvBOiLFKAKNjC',
+                    payment_method_types: ['card'],
+                    subscription: null,
+                    success_url: 'https://example.com/success',
+                    cancel_url: 'https://example.com/cancel',
+                },
+            },
+            livemode: false,
+            request: {
+                id: 'req_123',
+                idempotency_key: 'key_123',
+            },
+        };
+
+
+
+    });
+
+    afterAll(async () => {
+        await app.close();
+    });
+
+    it('should return 400 if the signature is invalid', async () => {
+        const invalidSignature = 'invalid_signature';
+        const stripeSecret = process.env.STRIPE_SECRET_KEY || 'wrong_secret';
+        const stripe = new Stripe(stripeSecret, { apiVersion: '2024-10-28.acacia' });
+        const signature = stripe.webhooks.generateTestHeaderString({
+            payload: JSON.stringify(mockStripeEvent),
+            secret: 'wrong_secret', // Using an incorrect secret for testing
+        });
+
+        const response = await request(app.server)
+            .post('/webhooks/stripe')
+            .set('stripe-signature', signature)
+            .send(mockStripeEvent);
+
+        expect(response.status).toBe(400);
+        expect(response.text).toContain('Webhook error');
+    });
+
+    it('should process the event and call GraphQL mutations and email service', async () => {
+        // Mock success responses for the mutations
+        const mockMutate = ApolloClient.prototype.mutate as jest.Mock;
+        mockMutate.mockResolvedValueOnce({ data: { createPayment: { id: 'payment_123' } } });
+        mockMutate.mockResolvedValueOnce({ data: { updateOrderStatus: { id: 'order_123' } } });
+
+        // Ensure the email service mock is properly resolved
+        (sendPaymentConfirmationEmail as jest.Mock).mockResolvedValueOnce(true);
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-10-28.acacia' });
+        const signature = stripe.webhooks.generateTestHeaderString({
+            payload: JSON.stringify(mockStripeEvent),
+            secret: process.env.STRIPE_WEBHOOK_SECRET,
+        });
+
+        const response = await request(app.server)
+            .post('/webhooks/stripe')
+            .set('stripe-signature', signature)
+            .send(mockStripeEvent);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ received: true });
+
+        // Check if mutations were called
+        expect(mockMutate).toHaveBeenCalledTimes(2);
+        expect(mockMutate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                mutation: expect.any(Object),
+                variables: expect.objectContaining({
+                    orderId: 'order_123',
+                    amount: 1000,
+                    paymentStatus: 'COMPLETED',
+                    transactionId: 'session_123',
+                }),
+            })
+        );
+
+        // Check if the email service was called
+        expect(sendPaymentConfirmationEmail).toHaveBeenCalledWith('test@example.com', 'order_123');
+    });
+
+    it('should handle errors in GraphQL mutations and email sending gracefully', async () => {
+        // Mock GraphQL mutation failure
+        const mockMutate = ApolloClient.prototype.mutate;
+        mockMutate.mockRejectedValueOnce(new Error('GraphQL mutation error'));
+
+        // Mock email sending failure
+        (sendPaymentConfirmationEmail as jest.Mock).mockRejectedValueOnce(new Error('Email sending failed'));
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-10-28.acacia' });
+        const signature = stripe.webhooks.generateTestHeaderString({
+            payload: JSON.stringify(mockStripeEvent),
+            secret: process.env.STRIPE_WEBHOOK_SECRET,
+        });
+
+        const response = await request(app.server)
+            .post('/webhooks/stripe')
+            .set('stripe-signature', signature)
+            .send(mockStripeEvent);
+
+        expect(response.status).toBe(200); // Even if there's an error, the event is acknowledged
+        expect(response.body).toEqual({ received: true });
+
+        expect(mockMutate).toHaveBeenCalledTimes(1); // Only the first mutation should fail
+        expect(sendPaymentConfirmationEmail).toHaveBeenCalledTimes(1); // Only the email should be attempted
+    });
+});

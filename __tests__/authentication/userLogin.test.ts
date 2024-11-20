@@ -95,8 +95,8 @@ describe('Authentication', () => {
       password: 'hashedPassword',
     });
 
-    (compare as jest.Mock).mockResolvedValue(true); 
-    (jwt.sign as jest.Mock).mockReturnValue('mockedJwtToken'); 
+    (compare as jest.Mock).mockResolvedValue(true);
+    (jwt.sign as jest.Mock).mockReturnValue('mockedJwtToken');
 
     const loginMutation = gql`
       mutation Login($email: String!, $password: String!) {

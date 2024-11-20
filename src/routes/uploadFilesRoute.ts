@@ -1,120 +1,146 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import path from 'path'
-import fs from 'fs'
-import { Storage } from '@google-cloud/storage'
-import {
-  // bucketName,
-  locallDir,
-} from '../config/config'
-import Fastify from 'fastify'
+import { Storage } from '@google-cloud/storage' // Google Cloud Storage SDK
 import multipart from '@fastify/multipart'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import { parse } from 'fast-csv'
+// import util from 'util'
+import { FastifyInstance } from 'fastify'
+import { pipeline } from 'stream'
+import { promisify } from 'util'
 
-const server = Fastify()
-server.register(multipart, {
-  limits: { fileSize: 50 * 1024 * 1024 },
-})
+const pump = promisify(pipeline)
 
+// Extending Fastify instance type to include 'uploadFile' method
+declare module 'fastify' {
+  interface FastifyInstance {
+    uploadFile(parts: AsyncIterable<any>): Promise<{ message: string }>
+  }
+}
+
+// Create a Google Cloud Storage client
 const storage = new Storage()
-const bucket = storage.bucket('bucketName')
 
-export function registerUploadFilesRoute(server: FastifyInstance) {
-  // File Upload Endpoint
-  server.post(
-    '/api/upload/files',
-    async (req: FastifyRequest, reply: FastifyReply) => {
-      try {
-        const files = []
+export async function registerUploadFilesRoute(app: FastifyInstance) {
+  const bucketName = process.env.BUCKET_URL as string
 
-        // Collect files from the request
-        for await (const file of req.files()) {
-          files.push(file)
-        }
+  if (!bucketName) {
+    throw new Error('BUCKET_URL is not defined in the environment variables')
+  }
+  app.register(multipart, {
+    limits: {
+      fileSize: 1024 * 1024 * 50, // 50MB
+    },
+  })
 
-        if (files.length === 0) {
-          return reply.status(400).send('No files uploaded.')
-        }
+  // Register the upload file functionality
+  app.decorate('uploadFile', async function (parts: AsyncIterable<any>) {
+    const isProduction = process.env.NODE_ENV === 'production'
+    const folder = './uploads'
 
-        const uploadPromises = files.map(async (data) => {
-          const { filename, file } = data
-          const mimetype = data.mimetype || 'application/octet-stream'
+    if (!isProduction) {
+      // Create local uploads folder if it doesn't exist
+      await createFolderIfMissing(folder)
+    }
 
-          if (process.env.NODE_ENV === 'development') {
-            // Save files locally during development
-            const uploadDir = path.resolve(locallDir ?? './uploads')
-            if (!fs.existsSync(uploadDir)) {
-              fs.mkdirSync(uploadDir, { recursive: true })
-            }
+    for await (const part of parts) {
+      if (part.file) {
+        const mimeType = mime.lookup(part.filename)
+        const destFilePath = path.join(folder, part.filename)
 
-            const localFilePath = path.join(uploadDir, filename)
-            const writeStream = fs.createWriteStream(localFilePath)
+        if (isProduction) {
+          // Upload to Google Cloud Storage in production
+          const bucket = storage.bucket(bucketName)
+          const file = bucket.file(part.filename)
 
-            // Pipe the file stream to the local file system
-            file.pipe(writeStream)
-
-            return new Promise((resolve, reject) => {
-              writeStream.on('finish', () => {
-                const fileObject = {
-                  id: `${Date.now()}-${filename}`, // Generate an ID
-                  name: filename,
-                  url: `/uploads/${encodeURIComponent(filename)}`,
-                  size: fs.statSync(localFilePath).size.toString(), // Ensure size is a string
-                  type: mimetype,
-                }
-
-                console.log(`File saved locally: ${localFilePath}`)
-                resolve(fileObject)
-              })
-
-              writeStream.on('error', (err) => {
-                console.error('Error saving file locally:', err)
-                reject(err)
-              })
-            })
-          } else {
-            // In production, upload to Google Cloud Storage
-            const blob = bucket.file(filename)
-            const blobStream = blob.createWriteStream({
-              resumable: true,
-              gzip: true,
+          await pump(
+            part.file,
+            file.createWriteStream({
               metadata: {
-                contentType: mimetype,
+                contentType: mimeType || 'application/octet-stream',
               },
             })
+          )
 
-            return new Promise((resolve, reject) => {
-              blobStream.on('error', (err) => {
-                console.error('Error uploading file:', err)
-                reject(err)
-              })
+          console.log(`Uploaded to Google Cloud Storage: ${part.filename}`)
+        } else {
+          // Save locally in development mode
+          await pump(part.file, fs.createWriteStream(destFilePath))
+          console.log(`Uploaded to local folder: ${destFilePath}`)
+        }
 
-              blobStream.on('finish', async () => {
-                const publicUrl = `https://storage.cloud.google.com/${bucket.name}/${blob.name}`
-                const [metadata] = await blob.getMetadata()
-                const fileSize = metadata.size
-
-                const fileObject = {
-                  id: `${Date.now()}-${filename}`, // Generate an ID
-                  name: filename,
-                  url: publicUrl,
-                  size: fileSize?.toString(), // Ensure size is a string
-                  type: mimetype,
-                }
-
-                console.log(`File uploaded successfully: ${publicUrl}`)
-                resolve(fileObject)
-              })
-
-              file.pipe(blobStream)
-            })
-          }
-        })
-
-        const uploadedFiles = await Promise.all(uploadPromises)
-        reply.status(200).send({ uploadedFiles })
-      } catch (error) {
-        console.error('File upload error:', error)
-        reply.status(500).send({ message: 'Internal Server Error' })
+        // Process CSV files
+        if (mimeType === 'text/csv') {
+          const csvData = await readCsv(
+            isProduction ? part.filename : destFilePath
+          )
+          console.log(csvData)
+        }
       }
     }
-  )
+
+    return { message: 'Files Uploaded Successfully' }
+  })
+
+  app.post('/api/upload/files', async function (request, reply) {
+    const file = await request.file()
+
+    if (!file) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'No file uploaded',
+      })
+    }
+
+    const allowedTypes = [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.pdf',
+      '.csv',
+      'doc',
+      'docx',
+      '.ppt',
+      'xls',
+    ]
+    const fileExtension = path.extname(file.filename).toLowerCase()
+
+    // Validate file type
+    if (!allowedTypes.includes(fileExtension)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Unsupported file type',
+      })
+    }
+
+    try {
+      const parts = await request.parts()
+      return app.uploadFile(parts)
+    } catch (error) {
+      console.error('Error during file upload:', error)
+      reply.status(500).send({ error: 'Internal Server Error' })
+    }
+  })
+}
+
+// Helper function to create folder if it doesn't exist
+async function createFolderIfMissing(folderName: string): Promise<void> {
+  try {
+    await fs.promises.stat(folderName)
+  } catch (error) {
+    console.error('Folder not found, creating...', error)
+    await fs.promises.mkdir(folderName)
+  }
+}
+
+// CSV parsing function
+function readCsv(filePath: string): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    const dataArray: any[] = []
+    fs.createReadStream(filePath)
+      .pipe(parse({ headers: true, delimiter: ';' }))
+      .on('data', (row) => dataArray.push(row))
+      .on('end', () => resolve(dataArray))
+      .on('error', reject)
+  })
 }

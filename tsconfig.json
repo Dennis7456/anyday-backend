@@ -14,7 +14,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "__tests__/**/*.ts"
+    "__tests__/**/*.ts",
+    "src/types/*"
   ],             
   "exclude": ["node_modules"]     // Exclude the node_modules folder
 }
