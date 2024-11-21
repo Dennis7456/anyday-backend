@@ -22,7 +22,7 @@ describe('registerCreateStripePaymentSessionRoute', () => {
         process.env.STRIPE_SECRET_KEY = 'test-stripe-secret-key';
         process.env.BASE_URL = 'http://localhost:3000';
 
-        const mockedStripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-10-28.acacia' });
+        const mockedStripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-11-20.acacia' });
         registerCreateStripePaymentSessionRoute(app, mockedStripeClient);
 
         await app.ready();
