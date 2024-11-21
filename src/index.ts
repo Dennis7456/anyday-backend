@@ -1,6 +1,7 @@
 import 'graphql-import-node'
 import Fastify, { FastifyInstance } from 'fastify'
 import dotenv from 'dotenv'
+import { Redis } from '@upstash/redis'
 import { registerIndexRoute } from './routes/indexRoute'
 import { registerGraphQLRoute } from './routes/graphqlRoute'
 import { registerGetRedisDataRoute } from './routes/getRedisDataRoute'
@@ -17,10 +18,15 @@ export const app: FastifyInstance = Fastify({
   logger: true,
 })
 
+const redis = new Redis({
+  url: process.env.REDISHOST,
+  token: process.env.REDISPASSWORD,
+})
+
 // Registered routes
 registerIndexRoute(app)
 registerGraphQLRoute(app)
-registerGetRedisDataRoute(app)
+registerGetRedisDataRoute(app, redis)
 registerUploadFilesRoute(app)
 registerListFilesRoute(app)
 registerCreateStripePaymentSessionRoute(app)

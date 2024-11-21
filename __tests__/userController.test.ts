@@ -1,4 +1,13 @@
-jest.mock('../src/services/redisClient');
+const mockRedis = {
+  set: jest.fn(),
+  get: jest.fn(),
+  del: jest.fn(),
+};
+
+jest.mock('@upstash/redis', () => ({
+  Redis: jest.fn(() => mockRedis),
+}));
+
 jest.mock('../src/services/sendVerificationEmail');
 jest.mock('uuid', () => {
   const originalModule = jest.requireActual('uuid');
@@ -9,11 +18,8 @@ jest.mock('uuid', () => {
   };
 });
 
-
 import { userResolvers } from '../src/controllers/userController';
-import { redisClient } from '../src/services/redisClient';
 import { sendVerificationEmail } from '../src/services/sendVerificationEmail';
-import { v4 as uuidv4 } from 'uuid';
 
 describe('registerAndCreateOrder', () => {
   const input = {
@@ -28,52 +34,63 @@ describe('registerAndCreateOrder', () => {
   });
 
   beforeEach(() => {
-    // jest.clearAllMocks();
-    // jest.resetAllMocks();
+    jest.clearAllMocks();
   });
-
 
   it('should successfully send a verification email and store data in Redis', async () => {
     // Mock Redis and email function success
-    (redisClient.setEx as jest.Mock).mockResolvedValue(true);
+    mockRedis.set.mockResolvedValue(true);
     (sendVerificationEmail as jest.Mock).mockResolvedValue(true);
-
+  
     const result = await userResolvers.Mutation.registerAndCreateOrder(null, { input });
-
+  
     expect(result.success).toBe(true);
     expect(result.message).toBe('Verification Email Sent.');
     expect(result.verificationToken).toBe('mocked-verification-token');
-
+  
     // Verify Redis and email were called correctly
-    expect(redisClient.setEx).toHaveBeenCalledWith(
+    expect(mockRedis.set).toHaveBeenCalledWith(
       'mocked-verification-token',
-      3600,
       JSON.stringify({
         email: input.email,
         paperType: input.paperType,
         numberOfPages: input.numberOfPages,
-        dueDate: input.dueDate,
-      })
+        dueDate: input.dueDate.toISOString(), // Store date as ISO string
+      }),
+      { ex: 3600 } // Correct expiration value
     );
-
+  
     expect(sendVerificationEmail).toHaveBeenCalledWith(input.email, 'mocked-verification-token');
   });
+  
 
   it('should handle errors and return a failure response', async () => {
     // Mock Redis to simulate an error
-    (redisClient.setEx as jest.Mock).mockRejectedValue(new Error('Redis error'));
-
-    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
+    mockRedis.set.mockRejectedValue(new Error('Redis error'));
+  
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => {});
     const result = await userResolvers.Mutation.registerAndCreateOrder(null, { input });
-
+  
     expect(result.success).toBe(false);
-    expect(result.message).toBe('An error occurred while processing your request. Please try again later.');
+    expect(result.message).toBe(
+      'An error occurred while processing your request. Please try again later.'
+    );
     expect(result.verificationToken).toBeNull();
-
+  
     // Ensure that Redis was called and the error was handled
-    expect(redisClient.setEx).toHaveBeenCalled();
+    expect(mockRedis.set).toHaveBeenCalledWith(
+      'mocked-verification-token',
+      JSON.stringify({
+        email: input.email,
+        paperType: input.paperType,
+        numberOfPages: input.numberOfPages,
+        dueDate: input.dueDate.toISOString(), // Ensure the same date format is tested
+      }),
+      { ex: 3600 } // Include the expiration option in the assertion
+    );
     expect(sendVerificationEmail).not.toHaveBeenCalled();
-
+  
     consoleErrorMock.mockRestore();
   });
+  
 });

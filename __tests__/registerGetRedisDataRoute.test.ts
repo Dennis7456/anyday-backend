@@ -1,15 +1,16 @@
 import fastify, { FastifyInstance } from 'fastify';
 import { registerGetRedisDataRoute } from '../src/routes/getRedisDataRoute';
-import { redisClient } from '../src/services/redisClient';
+import { Redis } from '@upstash/redis';
 
-jest.mock('../src/services/redisClient'); // Mock the redisClient module
+jest.mock('@upstash/redis'); // Mock the @upstash/redis module
 
 describe('GET Redis Data Route', () => {
   let server: FastifyInstance;
+  let redisMock: jest.Mocked<Redis>;
 
-  // Mock console.log to suppress output during tests
   beforeAll(() => {
-    jest.spyOn(console, 'log').mockImplementation(() => { }); // Suppress console.log
+    // Suppress console.log output during tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterAll(() => {
@@ -17,10 +18,16 @@ describe('GET Redis Data Route', () => {
   });
 
   beforeEach(() => {
+    // Create a mock Redis client
+    redisMock = {
+      get: jest.fn(),
+    } as unknown as jest.Mocked<Redis>;
+
     // Create a new Fastify instance for each test
     server = fastify();
+
     // Register the route
-    registerGetRedisDataRoute(server);
+    registerGetRedisDataRoute(server, redisMock);
   });
 
   afterEach(async () => {
@@ -29,11 +36,14 @@ describe('GET Redis Data Route', () => {
   });
 
   it('should return 401 if token is not provided', async () => {
+    const mockToken = 'valid-token';
+
+    // Mock Redis client to return null when fetching the user data
     const response = await server.inject({
       method: 'POST',
       url: '/api/redis/user-data',
       headers: {
-        Authorization: '',
+        Authorization: ``,
       },
     });
 
@@ -45,7 +55,7 @@ describe('GET Redis Data Route', () => {
     const mockToken = 'valid-token';
 
     // Mock Redis client to return null when fetching the user data
-    (redisClient.get as jest.Mock).mockResolvedValue(null);
+    redisMock.get.mockResolvedValue(null);
 
     const response = await server.inject({
       method: 'POST',
@@ -60,7 +70,9 @@ describe('GET Redis Data Route', () => {
   });
 
   it('should return 200 and user data if found in Redis', async () => {
+
     const mockToken = 'valid-token';
+
     const mockUserData = {
       id: '1',
       email: 'test@example.com',
@@ -68,7 +80,7 @@ describe('GET Redis Data Route', () => {
     };
 
     // Mock Redis client to return the mock user data when fetching with the token
-    (redisClient.get as jest.Mock).mockResolvedValueOnce(JSON.stringify(mockUserData));
+    redisMock.get.mockResolvedValueOnce(JSON.stringify(mockUserData));
 
     const response = await server.inject({
       method: 'POST',
@@ -86,7 +98,7 @@ describe('GET Redis Data Route', () => {
     const mockToken = 'valid-token';
 
     // Mock Redis client to throw an error when attempting to get user data
-    (redisClient.get as jest.Mock).mockRejectedValue(new Error('Redis error'));
+    redisMock.get.mockRejectedValue(new Error('Redis error'));
 
     const response = await server.inject({
       method: 'POST',

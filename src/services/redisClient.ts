@@ -1,36 +1,34 @@
-// src/services/redisClient.ts
-
-import { createClient, RedisClientType } from 'redis'
+import { Redis } from '@upstash/redis'
 import dotenv from 'dotenv'
 
 dotenv.config()
 
 const redisHost = process.env.REDISHOST
-const redisPort = parseInt(process.env.REDISPORT || '6379', 10)
 const redisPassword = process.env.REDISPASSWORD
 
-if (!redisHost || !redisPort) {
-  throw new Error('REDISHOST or REDISPORT environment variables are not set')
+if (!redisHost || !redisPassword) {
+  console.error('Missing Redis credentials')
+  process.exit(1)
 }
 
-export const redisClient: RedisClientType = createClient({
-  url: `redis://${redisHost}:${redisPort}`,
-  password: redisPassword,
-})
+const setupRedis = async () => {
+  const redis = new Redis({
+    url: redisHost,
+    token: redisPassword,
+  })
 
-redisClient.on('error', (err) => console.error('Redis Client Error', err))
-
-const connectRedis = async () => {
   try {
-    await redisClient.connect()
-    console.log('Redis Client connected successfully')
+    // Attempt a basic Redis operation to verify the connection
+    await redis.set('foo', 'bar')
+    const data = await redis.get('foo')
+    console.log('Redis connected successfully.', data)
   } catch (error) {
-    console.error('Error connecting to Redis:', error)
+    console.error('Error interacting with Redis:', error)
     process.exit(1)
   }
+
+  return redis
 }
 
-// Only connect if not in a test environment
-if (process.env.NODE_ENV !== 'test') {
-  connectRedis()
-}
+// Call the async function
+setupRedis()

@@ -1,41 +1,37 @@
-// __tests__/verifyEmail.test.ts
-jest.mock('redis', () => {
-  const mRedisClient = {
-    connect: jest.fn(),
-    on: jest.fn(),
+jest.mock('@upstash/redis', () => {
+  const mockRedis = {
     get: jest.fn(),
-    del: jest.fn(),
   };
-
   return {
-    createClient: jest.fn(() => mRedisClient),
+    Redis: jest.fn(() => mockRedis),
+    __mock__: { mockRedis }, // Expose mockRedis for internal use
   };
 });
 
 import { userResolvers } from '../src/controllers/userController';
-import { redisClient } from '../src/services/redisClient';
+import { Redis } from '@upstash/redis';
+
+// Access mockRedis from the mock implementation
+const { __mock__: { mockRedis } } = jest.requireMock('@upstash/redis');
 
 describe('verifyEmail', () => {
   const validToken = 'valid-token';
   const invalidToken = 'invalid-token';
-
-  const mockedRedisClient = redisClient as jest.Mocked<typeof redisClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetAllMocks();
   });
 
-
   it('should return valid response for a valid token', async () => {
     const cachedData = JSON.stringify({
       email: 'test@example.com',
       paperType: 'Essay',
       numberOfPages: 5,
-      dueDate: new Date('2024-12-01'),
+      dueDate: '2024-12-01',
     });
 
-    mockedRedisClient.get.mockResolvedValue(cachedData);
+    mockRedis.get.mockResolvedValue(cachedData);
 
     const result = await userResolvers.Mutation.verifyEmail(null, { token: validToken });
 
@@ -45,11 +41,11 @@ describe('verifyEmail', () => {
     expect(result.token).toBe(validToken);
 
     // Ensure Redis was called with the correct token
-    expect(redisClient.get).toHaveBeenCalledWith(validToken);
+    expect(mockRedis.get).toHaveBeenCalledWith(validToken);
   });
 
   it('should return invalid response for an invalid or expired token', async () => {
-    mockedRedisClient.get.mockResolvedValue(null);
+    mockRedis.get.mockResolvedValue(null);
 
     const result = await userResolvers.Mutation.verifyEmail(null, { token: invalidToken });
 
@@ -59,6 +55,6 @@ describe('verifyEmail', () => {
     expect(result.token).toBe('');
 
     // Ensure Redis was called with the correct token
-    expect(redisClient.get).toHaveBeenCalledWith(invalidToken);
+    expect(mockRedis.get).toHaveBeenCalledWith(invalidToken);
   });
 });

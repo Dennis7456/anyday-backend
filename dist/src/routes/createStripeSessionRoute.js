@@ -19,7 +19,7 @@ dotenv_1.default.config();
 function registerCreateStripePaymentSessionRoute(app, stripeClient) {
     const stripe = stripeClient ||
         new stripe_1.default(process.env.STRIPE_SECRET_KEY || '', {
-            apiVersion: '2024-10-28.acacia',
+            apiVersion: '2024-11-20.acacia',
         });
     app.route({
         method: 'POST',

@@ -5,7 +5,7 @@ import { GraphQLContext } from '../context/context'
 import { APP_SECRET, REGISTER_EXPIRATION, baseUrl } from '../config/config'
 import { v4 as uuidv4 } from 'uuid'
 import { sendVerificationEmail } from '../services/sendVerificationEmail'
-import { redisClient } from '../services/redisClient'
+import { Redis } from '@upstash/redis'
 
 export type Role = 'STUDENT' | 'ADMIN' | 'WRITER' | 'QA'
 
@@ -42,6 +42,11 @@ export interface RegisterOrderResponse {
   verificationToken: string | null
 }
 
+const redis = new Redis({
+  url: process.env.REDISHOST!,
+  token: process.env.REDISPASSWORD!,
+})
+
 export const userResolvers = {
   Query: {
     users: async (_: unknown, __: unknown, context: GraphQLContext) => {
@@ -62,38 +67,76 @@ export const userResolvers = {
     },
   },
   Mutation: {
+    // registerAndCreateOrder: async (
+    //   _: unknown,
+    //   { input }: { input: RegisterAndCreateOrderInput }
+    // ): Promise<RegisterOrderResponse> => {
+    //   try {
+    //     // Generate a unique verification token
+    //     const verificationToken = uuidv4()
+
+    //     // Store the registration data in Redis temporarily with an expiration time
+    //     await redisClient.setEx(
+    //       verificationToken,
+    //       REGISTER_EXPIRATION,
+    //       JSON.stringify({
+    //         email: input.email, // Corrected typo 'emai' to 'email'
+    //         paperType: input.paperType,
+    //         numberOfPages: input.numberOfPages,
+    //         dueDate: input.dueDate,
+    //       })
+    //     )
+
+    //     // Send verification email
+    //     await sendVerificationEmail(input.email, verificationToken)
+
+    //     // Return a success response with the verification token
+    //     return {
+    //       success: true,
+    //       message: 'Verification Email Sent.',
+    //       verificationToken,
+    //     }
+    //   } catch (error) {
+    //     // Handle any errors that occur during the process
+    //     console.error('Error registering and creating order:', error)
+    //     return {
+    //       success: false,
+    //       message:
+    //         'An error occurred while processing your request. Please try again later.',
+    //       verificationToken: null,
+    //     }
+    //   }
+    // },
+
     registerAndCreateOrder: async (
       _: unknown,
       { input }: { input: RegisterAndCreateOrderInput }
     ): Promise<RegisterOrderResponse> => {
       try {
-        // Generate a unique verification token
         const verificationToken = uuidv4()
 
-        // Store the registration data in Redis temporarily with an expiration time
-        await redisClient.setEx(
+        // Store registration data in Redis with an expiration time
+        await redis.set(
           verificationToken,
-          REGISTER_EXPIRATION,
           JSON.stringify({
-            email: input.email, // Corrected typo 'emai' to 'email'
+            email: input.email,
             paperType: input.paperType,
             numberOfPages: input.numberOfPages,
             dueDate: input.dueDate,
-          })
+          }),
+          { ex: REGISTER_EXPIRATION }
         )
 
-        // Send verification email
         await sendVerificationEmail(input.email, verificationToken)
 
-        // Return a success response with the verification token
         return {
           success: true,
           message: 'Verification Email Sent.',
           verificationToken,
         }
       } catch (error) {
-        // Handle any errors that occur during the process
-        console.error('Error registering and creating order:', error)
+        console.error('Error in registerAndCreateOrder:', error)
+
         return {
           success: false,
           message:
@@ -133,7 +176,7 @@ export const userResolvers = {
       redirectUrl: string
       token: string
     }> => {
-      const cachedData = await redisClient.get(token)
+      const cachedData = await redis.get(token)
 
       if (!cachedData) {
         return {
@@ -154,20 +197,42 @@ export const userResolvers = {
     },
     completeRegistration: async (
       _: unknown,
-      { token }: { token: string }
+      { token }: { token: string },
+      { redis }: { redis: Redis }
     ): Promise<{ valid: boolean; message: string }> => {
-      const cachedData = await redisClient.get(token)
-      if (!cachedData) {
-        throw new Error('Invalid or expired token.')
-      }
-      // const { email, paperType, numberOfPages, dueDate } =
-      //   JSON.parse(cachedData)
-      await redisClient.del(token)
-      return {
-        valid: true,
-        message: 'Registration completed successfully and order created.',
+      try {
+        const cachedData = await redis.get(token)
+        if (!cachedData) {
+          return {
+            valid: false,
+            message: 'Invalid or expired token.',
+          }
+        }
+
+        const { email, paperType, numberOfPages, dueDate } = JSON.parse(
+          cachedData as string
+        )
+
+        console.log('Verified data:', {
+          email,
+          paperType,
+          numberOfPages,
+          dueDate,
+        })
+
+        // Delete token after successful verification
+        await redis.del(token)
+
+        return {
+          valid: true,
+          message: 'Registration completed successfully and order created.',
+        }
+      } catch (error) {
+        console.error('Error in completeRegistration:', error)
+        throw new Error('An error occurred while completing registration.')
       }
     },
+
     createStudent: async (
       _: unknown,
       { input }: { input: CreateStudentInput },
@@ -176,7 +241,7 @@ export const userResolvers = {
       const { firstName, lastName, email, phoneNumber, dateOfBirth, password } =
         input
 
-      // Validate input fields
+      // Ensure input validation includes password requirements
       if (
         !firstName ||
         !lastName ||
@@ -188,10 +253,17 @@ export const userResolvers = {
         throw new Error('All fields are required.')
       }
 
-      const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(Math.random() * 10000)}`
+      if (password.length < 8) {
+        throw new Error('Password must be at least 8 characters long.')
+      }
 
-      const hashedPassword = await hash(password, 10)
+      const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(
+        Math.random() * 10000
+      )}`
+
       try {
+        const hashedPassword = await hash(password, 10)
+
         const student = await context.prisma.user.create({
           data: {
             firstName,
@@ -206,9 +278,10 @@ export const userResolvers = {
             updatedAt: new Date(),
           },
         })
+
         return student
       } catch (error) {
-        console.error('Database error:', error)
+        console.error('Error creating student:', error)
         throw new Error('An error occurred while creating the student.')
       }
     },

@@ -1,7 +1,10 @@
 import { FastifyInstance } from 'fastify'
-import { redisClient } from '../services/redisClient'
+import { Redis } from '@upstash/redis'
 
-export function registerGetRedisDataRoute(server: FastifyInstance) {
+export function registerGetRedisDataRoute(
+  server: FastifyInstance,
+  redis: Redis
+) {
   server.route({
     method: 'POST',
     url: '/api/redis/user-data',
@@ -14,10 +17,10 @@ export function registerGetRedisDataRoute(server: FastifyInstance) {
       }
 
       try {
-        const userData = await redisClient.get(token)
+        const userData = await redis.get(token)
 
         if (userData) {
-          reply.send(JSON.parse(userData))
+          reply.send(JSON.parse(userData as string))
         } else {
           reply.status(404).send('User data not found')
         }

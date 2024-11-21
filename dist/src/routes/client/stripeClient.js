@@ -12,5 +12,5 @@ if (!stripeSecretKey) {
     throw new Error('STRIPE_SECRET_KEY environment variable is not set.');
 }
 exports.stripeClient = new stripe_1.default(stripeSecretKey, {
-    apiVersion: '2024-10-28.acacia',
+    apiVersion: '2024-11-20.acacia',
 });
