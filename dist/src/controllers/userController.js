@@ -19,7 +19,11 @@ const bcryptjs_2 = require("bcryptjs");
 const config_1 = require("../config/config");
 const uuid_1 = require("uuid");
 const sendVerificationEmail_1 = require("../services/sendVerificationEmail");
-const redisClient_1 = require("../services/redisClient");
+const redis_1 = require("@upstash/redis");
+const redis = new redis_1.Redis({
+    url: process.env.REDISHOST,
+    token: process.env.REDISPASSWORD,
+});
 exports.userResolvers = {
     Query: {
         users: (_, __, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -36,20 +40,54 @@ exports.userResolvers = {
         },
     },
     Mutation: {
+        // registerAndCreateOrder: async (
+        //   _: unknown,
+        //   { input }: { input: RegisterAndCreateOrderInput }
+        // ): Promise<RegisterOrderResponse> => {
+        //   try {
+        //     // Generate a unique verification token
+        //     const verificationToken = uuidv4()
+        //     // Store the registration data in Redis temporarily with an expiration time
+        //     await redisClient.setEx(
+        //       verificationToken,
+        //       REGISTER_EXPIRATION,
+        //       JSON.stringify({
+        //         email: input.email, // Corrected typo 'emai' to 'email'
+        //         paperType: input.paperType,
+        //         numberOfPages: input.numberOfPages,
+        //         dueDate: input.dueDate,
+        //       })
+        //     )
+        //     // Send verification email
+        //     await sendVerificationEmail(input.email, verificationToken)
+        //     // Return a success response with the verification token
+        //     return {
+        //       success: true,
+        //       message: 'Verification Email Sent.',
+        //       verificationToken,
+        //     }
+        //   } catch (error) {
+        //     // Handle any errors that occur during the process
+        //     console.error('Error registering and creating order:', error)
+        //     return {
+        //       success: false,
+        //       message:
+        //         'An error occurred while processing your request. Please try again later.',
+        //       verificationToken: null,
+        //     }
+        //   }
+        // },
         registerAndCreateOrder: (_1, _a) => __awaiter(void 0, [_1, _a], void 0, function* (_, { input }) {
             try {
-                // Generate a unique verification token
                 const verificationToken = (0, uuid_1.v4)();
-                // Store the registration data in Redis temporarily with an expiration time
-                yield redisClient_1.redisClient.setEx(verificationToken, config_1.REGISTER_EXPIRATION, JSON.stringify({
-                    email: input.email, // Corrected typo 'emai' to 'email'
+                // Store registration data in Redis with an expiration time
+                yield redis.set(verificationToken, JSON.stringify({
+                    email: input.email,
                     paperType: input.paperType,
                     numberOfPages: input.numberOfPages,
                     dueDate: input.dueDate,
-                }));
-                // Send verification email
+                }), { ex: config_1.REGISTER_EXPIRATION });
                 yield (0, sendVerificationEmail_1.sendVerificationEmail)(input.email, verificationToken);
-                // Return a success response with the verification token
                 return {
                     success: true,
                     message: 'Verification Email Sent.',
@@ -57,8 +95,7 @@ exports.userResolvers = {
                 };
             }
             catch (error) {
-                // Handle any errors that occur during the process
-                console.error('Error registering and creating order:', error);
+                console.error('Error in registerAndCreateOrder:', error);
                 return {
                     success: false,
                     message: 'An error occurred while processing your request. Please try again later.',
@@ -82,7 +119,7 @@ exports.userResolvers = {
             };
         }),
         verifyEmail: (_1, _a) => __awaiter(void 0, [_1, _a], void 0, function* (_, { token }) {
-            const cachedData = yield redisClient_1.redisClient.get(token);
+            const cachedData = yield redis.get(token);
             if (!cachedData) {
                 return {
                     valid: false,
@@ -99,22 +136,37 @@ exports.userResolvers = {
                 token: token,
             };
         }),
-        completeRegistration: (_1, _a) => __awaiter(void 0, [_1, _a], void 0, function* (_, { token }) {
-            const cachedData = yield redisClient_1.redisClient.get(token);
-            if (!cachedData) {
-                throw new Error('Invalid or expired token.');
+        completeRegistration: (_1, _a, _b) => __awaiter(void 0, [_1, _a, _b], void 0, function* (_, { token }, { redis }) {
+            try {
+                const cachedData = yield redis.get(token);
+                if (!cachedData) {
+                    return {
+                        valid: false,
+                        message: 'Invalid or expired token.',
+                    };
+                }
+                const { email, paperType, numberOfPages, dueDate } = JSON.parse(cachedData);
+                console.log('Verified data:', {
+                    email,
+                    paperType,
+                    numberOfPages,
+                    dueDate,
+                });
+                // Delete token after successful verification
+                yield redis.del(token);
+                return {
+                    valid: true,
+                    message: 'Registration completed successfully and order created.',
+                };
             }
-            // const { email, paperType, numberOfPages, dueDate } =
-            //   JSON.parse(cachedData)
-            yield redisClient_1.redisClient.del(token);
-            return {
-                valid: true,
-                message: 'Registration completed successfully and order created.',
-            };
+            catch (error) {
+                console.error('Error in completeRegistration:', error);
+                throw new Error('An error occurred while completing registration.');
+            }
         }),
         createStudent: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { input }, context) {
             const { firstName, lastName, email, phoneNumber, dateOfBirth, password } = input;
-            // Validate input fields
+            // Ensure input validation includes password requirements
             if (!firstName ||
                 !lastName ||
                 !email ||
@@ -123,9 +175,12 @@ exports.userResolvers = {
                 !password) {
                 throw new Error('All fields are required.');
             }
+            if (password.length < 8) {
+                throw new Error('Password must be at least 8 characters long.');
+            }
             const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(Math.random() * 10000)}`;
-            const hashedPassword = yield (0, bcryptjs_2.hash)(password, 10);
             try {
+                const hashedPassword = yield (0, bcryptjs_2.hash)(password, 10);
                 const student = yield context.prisma.user.create({
                     data: {
                         firstName,
@@ -143,7 +198,7 @@ exports.userResolvers = {
                 return student;
             }
             catch (error) {
-                console.error('Database error:', error);
+                console.error('Error creating student:', error);
                 throw new Error('An error occurred while creating the student.');
             }
         }),

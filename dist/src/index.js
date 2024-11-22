@@ -16,6 +16,7 @@ exports.app = void 0;
 require("graphql-import-node");
 const fastify_1 = __importDefault(require("fastify"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const redis_1 = require("@upstash/redis");
 const indexRoute_1 = require("./routes/indexRoute");
 const graphqlRoute_1 = require("./routes/graphqlRoute");
 const getRedisDataRoute_1 = require("./routes/getRedisDataRoute");
@@ -28,10 +29,14 @@ dotenv_1.default.config();
 exports.app = (0, fastify_1.default)({
     logger: true,
 });
+const redis = new redis_1.Redis({
+    url: process.env.REDISHOST,
+    token: process.env.REDISPASSWORD,
+});
 // Registered routes
 (0, indexRoute_1.registerIndexRoute)(exports.app);
 (0, graphqlRoute_1.registerGraphQLRoute)(exports.app);
-(0, getRedisDataRoute_1.registerGetRedisDataRoute)(exports.app);
+(0, getRedisDataRoute_1.registerGetRedisDataRoute)(exports.app, redis);
 (0, uploadFilesRoute_1.registerUploadFilesRoute)(exports.app);
 (0, showFileRoute_1.registerListFilesRoute)(exports.app);
 (0, createStripeSessionRoute_1.registerCreateStripePaymentSessionRoute)(exports.app);
