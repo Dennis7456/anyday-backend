@@ -1,0 +1,17 @@
+- name: Create env-vars.txt
+        run: |
+          echo "APP_SECRET: ${{ secrets.APP_SECRET }}" >> env-vars.txt
+          echo "BUCKET_URL: ${{ secrets.BUCKET_URL }}" >> env-vars.txt
+          echo "FRONTEND_URL: ${{ secrets.FRONTEND_URL }}" >> env-vars.txt
+          echo "GRAPHQL_API_TOKEN: ${{ secrets.GRAPHQL_API_TOKEN }}" >> env-vars.txt
+          echo "MAILJET_API_TOKEN: ${{ secrets.MAILJET_API_TOKEN }}" >> env-vars.txt
+          echo "MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}" >> env-vars.txt
+          echo "NODE_ENV: ${{ secrets.NODE_ENV }}" >> env-vars.txt
+          echo "POSTGRES_PRISMA_URL: ${{ secrets.POSTGRES_PRISMA_URL }}" >> env-vars.txt
+          echo "POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}" >> env-vars.txt
+          echo "REDISHOST: ${{ secrets.REDISHOST }}" >> env-vars.txt
+          echo "REDISPASSWORD: ${{ secrets.REDISPASSWORD }}" >> env-vars.txt
+          echo "REDISPORT: ${{ secrets.REDISPORT }}" >> env-vars.txt
+          echo "REGISTER_EXPIRATION: ${{ secrets.REGISTER_EXPIRATION }}" >> env-vars.txt
+          echo "STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}" >> env-vars.txt
+          echo "STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}" >> env-vars.txt
