@@ -1,5 +1,4 @@
 "use strict";
-// src/services/redisClient.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -13,32 +12,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.redisClient = void 0;
-const redis_1 = require("redis");
+const redis_1 = require("@upstash/redis");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const redisHost = process.env.REDISHOST;
-const redisPort = parseInt(process.env.REDISPORT || '6379', 10);
 const redisPassword = process.env.REDISPASSWORD;
-if (!redisHost || !redisPort) {
-    throw new Error('REDISHOST or REDISPORT environment variables are not set');
+if (!redisHost || !redisPassword) {
+    console.error('Missing Redis credentials');
+    process.exit(1);
 }
-exports.redisClient = (0, redis_1.createClient)({
-    url: `redis://${redisHost}:${redisPort}`,
-    password: redisPassword,
-});
-exports.redisClient.on('error', (err) => console.error('Redis Client Error', err));
-const connectRedis = () => __awaiter(void 0, void 0, void 0, function* () {
+const setupRedis = () => __awaiter(void 0, void 0, void 0, function* () {
+    const redis = new redis_1.Redis({
+        url: redisHost,
+        token: redisPassword,
+    });
     try {
-        yield exports.redisClient.connect();
-        console.log('Redis Client connected successfully');
+        // Attempt a basic Redis operation to verify the connection
+        yield redis.set('foo', 'bar');
+        const data = yield redis.get('foo');
+        console.log('Redis connected successfully.', data);
     }
     catch (error) {
-        console.error('Error connecting to Redis:', error);
+        console.error('Error interacting with Redis:', error);
         process.exit(1);
     }
+    return redis;
 });
-// Only connect if not in a test environment
-if (process.env.NODE_ENV !== 'test') {
-    connectRedis();
-}
+// Call the async function
+setupRedis();

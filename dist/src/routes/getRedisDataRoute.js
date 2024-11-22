@@ -10,8 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerGetRedisDataRoute = registerGetRedisDataRoute;
-const redisClient_1 = require("../services/redisClient");
-function registerGetRedisDataRoute(server) {
+function registerGetRedisDataRoute(server, redis) {
     server.route({
         method: 'POST',
         url: '/api/redis/user-data',
@@ -24,7 +23,7 @@ function registerGetRedisDataRoute(server) {
                 return;
             }
             try {
-                const userData = yield redisClient_1.redisClient.get(token);
+                const userData = yield redis.get(token);
                 if (userData) {
                     reply.send(JSON.parse(userData));
                 }
