@@ -5,7 +5,7 @@
   "scripts": {
     "test": "NODE_ENV=test jest --config jest.config.ts ./__tests__",
     "test:watch": "NODE_ENV=test jest --config jest.config.ts ./__tests__ --watch --verbose --detectOpenHandles",
-    "test:staged": "NODE_ENV=test jest --findRelatedTests",
+    "test:staged": "NODE_ENV=test jest --findRelatedTests --passWithNoTests",
     "test:cache": "npx jest --clearCache",
     "dev": "ts-node-dev --exit-child src/index.ts",
     "clean": "rm -rf dist",
