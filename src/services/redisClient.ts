@@ -3,10 +3,10 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const redisHost = process.env.REDIS_HOST
+const redisUrl = process.env.REDIS_URL
 const redisToken = process.env.REDIS_TOKEN
 
-if (!redisHost) {
+if (!redisUrl) {
   console.error('Missing Redis URL')
   process.exit(1)
 }
@@ -17,7 +17,7 @@ if (!redisToken) {
 }
 
 const redisClient = new Redis({
-  url: redisHost,
+  url: redisUrl,
   token: redisToken,
 })
 
