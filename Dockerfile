@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY prisma ./prisma
 
-# Install all dependencies (including dev dependencies)
+# Install all dependencies
 RUN npm install
 
 # Copy application code
@@ -27,12 +27,11 @@ FROM node:20-alpine AS production
 
 WORKDIR /usr/src/app
 
-# Copy built application and production dependencies
-COPY --from=build /usr/src/app /usr/src/app
+# Add glibc compatibility for Prisma query engine
+RUN apk add --no-cache libc6-compat
 
-# Set Prisma writable directory
-ENV PRISMA_QUERY_ENGINE_LIBRARY=/tmp/prisma
-RUN mkdir -p /tmp/prisma && chmod -R 777 /tmp/prisma
+# Copy built application and dependencies
+COPY --from=build /usr/src/app /usr/src/app
 
 # Ensure non-root user permissions
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
@@ -42,5 +41,5 @@ USER appuser
 
 EXPOSE 8080
 
-# Run database migrations and start the application
+# Run migrations and start the application
 CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
