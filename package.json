@@ -9,7 +9,7 @@
     "test:cache": "npx jest --clearCache",
     "dev": "ts-node-dev --exit-child src/index.ts",
     "clean": "rm -rf dist",
-    "build": "npm -s run clean && npm -s run generate:prisma && tsc",
+    "build": "npm run clean && npm run generate:prisma && tsc && cp src/schema.graphql dist/src/schema.graphql",
     "generate:prisma": "prisma generate",
     "start": "ts-node dist/src/index.js",
     "type-check": "tsc --noEmit",

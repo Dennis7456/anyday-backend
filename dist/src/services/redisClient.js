@@ -29,16 +29,19 @@ const redisClient = new redis_1.Redis({
     url: redisHost,
     token: redisToken,
 });
-(() => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        yield redisClient.set('foo', 'bar');
-        const data = yield redisClient.get('foo');
-        console.log('Redis connected successfully:', data);
-    }
-    catch (error) {
-        console.error('Error interacting with Redis:', error);
-        process.exit(1);
-    }
-}))();
-// }
+// Test Redis connection only in non-test environments
+if (process.env.NODE_ENV !== 'test') {
+    ;
+    (() => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield redisClient.set('foo', 'bar');
+            const data = yield redisClient.get('foo');
+            console.log('Redis connected successfully:', data);
+        }
+        catch (error) {
+            console.error('Error interacting with Redis:', error);
+            process.exit(1);
+        }
+    }))();
+}
 exports.default = redisClient;
