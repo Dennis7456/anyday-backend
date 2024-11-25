@@ -15,9 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const redis_1 = require("@upstash/redis");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-const redisHost = process.env.REDIS_HOST;
+const redisUrl = process.env.REDIS_URL;
 const redisToken = process.env.REDIS_TOKEN;
-if (!redisHost) {
+if (!redisUrl) {
     console.error('Missing Redis URL');
     process.exit(1);
 }
@@ -26,7 +26,7 @@ if (!redisToken) {
     process.exit(1);
 }
 const redisClient = new redis_1.Redis({
-    url: redisHost,
+    url: redisUrl,
     token: redisToken,
 });
 // Test Redis connection only in non-test environments

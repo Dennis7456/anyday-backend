@@ -14,8 +14,8 @@ services:
       - MAILJET_FROM=${MAILJET_FROM}
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-      - REDISHOST=${REDISHOST}
-      - REDISPORT=${REDISPORT}
+      - REDIS_TOKEN=${REDIS_TOKEN}
+      - REDIS_PORT=${REDIS_PORT}
       - BASE_URL=${BASE_URL}
       - BACKEND_URL=${BACKEND_URL}
       - PORT=${PORT}
@@ -41,8 +41,8 @@ services:
     volumes:
       - redis-data:/data
     environment:
-      REDIS_HOST: ${REDISHOST}
-      REDIS_PORT: ${REDISPORT}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_PORT: ${REDIS_PORT}
 
 volumes:
   db-data:
