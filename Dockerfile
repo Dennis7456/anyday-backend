@@ -1,5 +1,5 @@
 # Step 1: Build Stage
-FROM node:16 AS build
+FROM node:20 AS build
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
@@ -26,7 +26,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Step 2: Production Stage
-FROM node:16-alpine AS production
+FROM node:20-alpine AS production
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
