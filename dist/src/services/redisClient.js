@@ -16,27 +16,29 @@ const redis_1 = require("@upstash/redis");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const redisHost = process.env.REDISHOST;
-const redisPassword = process.env.REDISPASSWORD;
-if (!redisHost || !redisPassword) {
-    console.error('Missing Redis credentials');
+const redisToken = process.env.REDIS_TOKEN;
+if (!redisHost) {
+    console.error('Missing Redis URL');
     process.exit(1);
 }
-const setupRedis = () => __awaiter(void 0, void 0, void 0, function* () {
-    const redis = new redis_1.Redis({
-        url: redisHost,
-        token: redisPassword,
-    });
+if (!redisToken) {
+    console.error('Missing Redis Token');
+    process.exit(1);
+}
+const redisClient = new redis_1.Redis({
+    url: redisHost,
+    token: redisToken,
+});
+(() => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Attempt a basic Redis operation to verify the connection
-        yield redis.set('foo', 'bar');
-        const data = yield redis.get('foo');
-        console.log('Redis connected successfully.', data);
+        yield redisClient.set('foo', 'bar');
+        const data = yield redisClient.get('foo');
+        console.log('Redis connected successfully:', data);
     }
     catch (error) {
         console.error('Error interacting with Redis:', error);
         process.exit(1);
     }
-    return redis;
-});
-// Call the async function
-setupRedis();
+}))();
+// }
+exports.default = redisClient;

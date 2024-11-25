@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const redisHost = process.env.REDISHOST
-const redisToken = process.env.REDISPASSWORD
+const redisToken = process.env.REDIS_TOKEN
 
 if (!redisHost) {
   console.error('Missing Redis URL')
