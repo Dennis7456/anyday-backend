@@ -34,6 +34,9 @@ WORKDIR /usr/src/app
 # Copy the built application and production node_modules from the build stage
 COPY --from=build /usr/src/app /usr/src/app
 
+# Fix permissions for node_modules (recursive)
+RUN chown -R node:node /usr/src/app/node_modules
+
 # Ensure permissions are set for non-root users
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
