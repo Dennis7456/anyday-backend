@@ -1,49 +1,39 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
-  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+  binaryTargets   = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
   provider  = "postgres"
-  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
-  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
-  id                String      @id @default(uuid())
-  firstName         String
-  lastName          String
-  userName          String
-  email             String       @unique
-  phoneNumber       String
-  dateOfBirth       DateTime
-  password          String
-  role              Role
-  isVerified        Boolean      @default(false)
-  profilePicture    String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-
-  // Notfication Preferences
-  emailNotifications Boolean     @default(true)
-  inAppNotifications Boolean     @default(true)
-
-  // Relations
-  orders          Order[]           @relation("UserOrders")
-  notifications      Notification[] @relation("UserNotifications")
-  sentMessages    Message[]         @relation("MessageSender")
+  id                 String         @id @default(uuid())
+  firstName          String
+  lastName           String
+  userName           String
+  email              String         @unique
+  phoneNumber        String
+  password           String
+  role               Role
+  isVerified         Boolean        @default(false)
+  profilePicture     String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  emailNotifications Boolean        @default(true)
+  inAppNotifications Boolean        @default(true)
+  dateOfBirth        DateTime
+  assignments        Assignment[]   @relation("WriterAssignments")
   receivedMessages   Message[]      @relation("MessageRecipient")
-  qaReviews      Review[]     @relation("QAReviews")
-  writtenReviews Review[]     @relation("WriterReviews")
-  assignments    Assignment[] @relation("WriterAssignments")
-  chats               Chat[]    @relation("ChatParticipants")
+  sentMessages       Message[]      @relation("MessageSender")
+  notifications      Notification[] @relation("UserNotifications")
+  orders             Order[]        @relation("UserOrders")
+  qaReviews          Review[]       @relation("QAReviews")
+  writtenReviews     Review[]       @relation("WriterReviews")
+  chats              Chat[]         @relation("ChatParticipants")
 
   @@map("users")
 }
@@ -58,132 +48,124 @@ model Order {
   status        OrderStatus
   totalAmount   Float
   depositAmount Float
-  createdAt     DateTime    @default(now())
-  submittedAt   DateTime?   // Optional timestamp to track when the order was submitted
-  updatedAt     DateTime    @updatedAt
-
-  // Relations
+  createdAt     DateTime     @default(now())
+  submittedAt   DateTime?
+  updatedAt     DateTime     @updatedAt
+  assignments   Assignment[]
+  chats         Chat[]       @relation("OrderChats")
+  uploadedFiles File[]       @relation("OrderFiles")
   student       User         @relation("UserOrders", fields: [studentId], references: [id])
   payment       Payment?
   reviews       Review[]
-  assignments   Assignment[]
-  uploadedFiles File[]       @relation("OrderFiles")
-  chats         Chat[]       @relation("OrderChats")
 
   @@map("orders")
 }
 
 model Review {
-  id        String      @id @default(uuid())
+  id        String       @id @default(uuid())
   orderId   String
   qaId      String
   writerId  String
   comments  String?
   rating    Int
-  status    ReviewStatus @default(PENDING) // Track if a review is pending or verified
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  order  Order @relation(fields: [orderId], references: [id])
-  qa     User  @relation("QAReviews", fields: [qaId], references: [id])
-  writer User  @relation("WriterReviews", fields: [writerId], references: [id])
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  order     Order        @relation(fields: [orderId], references: [id])
+  qa        User         @relation("QAReviews", fields: [qaId], references: [id])
+  writer    User         @relation("WriterReviews", fields: [writerId], references: [id])
 
   @@map("reviews")
 }
 
-enum ReviewStatus {
-  PENDING
-  VERIFIED
-}
-
 model Assignment {
-  id          String       @id @default(uuid())
+  id          String           @id @default(uuid())
   orderId     String
   writerId    String
-  assignedAt  DateTime  @default(now())
+  assignedAt  DateTime         @default(now())
   completedAt DateTime?
-  status      AssignmentStatus @default(PENDING) // Track the status of the assignment
-
-  // Relations
-  order  Order @relation(fields: [orderId], references: [id])
-  writer User  @relation("WriterAssignments", fields: [writerId], references: [id])
+  status      AssignmentStatus @default(PENDING)
+  order       Order            @relation(fields: [orderId], references: [id])
+  writer      User             @relation("WriterAssignments", fields: [writerId], references: [id])
 
   @@map("assignments")
 }
 
 model Payment {
-  id              String        @id @default(uuid())
-  orderId         String        @unique
-  amount          Float
-  paymentStatus   PaymentStatus
-  transactionId   String?
-  paymentDate     DateTime      @default(now())
-  paymentMethod   String?       // The method used (e.g., Stripe, PayPal)
-  paymentDueDate  DateTime?     // Optional due date for payment
-
-  // Relations
-  order Order @relation(fields: [orderId], references: [id])
+  id             String        @id @default(uuid())
+  orderId        String        @unique
+  amount         Float
+  paymentStatus  PaymentStatus
+  transactionId  String?
+  paymentDate    DateTime      @default(now())
+  paymentMethod  String?
+  paymentDueDate DateTime?
+  order          Order         @relation(fields: [orderId], references: [id])
 
   @@map("payments")
 }
 
 model File {
-  id         String      @id @default(uuid())
-  url        String
-  name       String
-  size       String
-  mimeType   String?     // Added mimeType for better validation
-  orderId    String
-  order      Order    @relation("OrderFiles", fields: [orderId], references: [id])
+  id       String  @id @default(uuid())
+  url      String
+  name     String
+  size     String
+  mimeType String?
+  orderId  String
+  order    Order   @relation("OrderFiles", fields: [orderId], references: [id])
 
   @@map("files")
 }
 
 model Chat {
-  id          String       @id @default(uuid())
-  orderId     String
-  participants User[]      @relation("ChatParticipants") // Users involved in the chat
-  messages    Message[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  // Relations
-  order       Order         @relation("OrderChats", fields: [orderId], references: [id])
+  id           String    @id @default(uuid())
+  orderId      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  order        Order     @relation("OrderChats", fields: [orderId], references: [id])
+  messages     Message[]
+  participants User[]    @relation("ChatParticipants")
 
   @@map("chats")
 }
 
 model Message {
-  id          String      @id @default(uuid())
+  id          String   @id @default(uuid())
   chatId      String
   senderId    String
   recipientId String?
   content     String
-  isRead      Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-
-  // Relations
-  chat        Chat        @relation(fields: [chatId], references: [id])
-  sender      User        @relation("MessageSender", fields: [senderId], references: [id])
-  recipient   User?       @relation("MessageRecipient", fields: [recipientId], references: [id])
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  chat        Chat     @relation(fields: [chatId], references: [id])
+  recipient   User?    @relation("MessageRecipient", fields: [recipientId], references: [id])
+  sender      User     @relation("MessageSender", fields: [senderId], references: [id])
 
   @@map("messages")
 }
 
 model Notification {
-  id          String      @id @default(uuid())
+  id          String           @id @default(uuid())
   recipientId String
   type        NotificationType
   message     String
-  link        String      // Link to relevant page (e.g., order or chat)
-  isRead      Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-
-  // Relations
-  recipient   User        @relation("UserNotifications", fields: [recipientId], references: [id])
+  link        String
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  recipient   User             @relation("UserNotifications", fields: [recipientId], references: [id])
 
   @@map("notifications")
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
+
+enum ReviewStatus {
+  PENDING
+  VERIFIED
 }
 
 enum Role {

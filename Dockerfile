@@ -34,15 +34,19 @@ WORKDIR /usr/src/app
 # Copy the built application and production node_modules from the build stage
 COPY --from=build /usr/src/app /usr/src/app
 
-# Fix permissions for node_modules (recursive)
-RUN chown -R node:node /usr/src/app/node_modules
+# Set Prisma writable engine directory
+ENV PRISMA_QUERY_ENGINE_LIBRARY=/tmp/prisma
+RUN mkdir -p /tmp/prisma && chmod -R 777 /tmp/prisma
 
-# Ensure permissions are set for non-root users
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Ensure permissions for non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /usr/src/app
+
+# Switch to non-root user
 USER appuser
 
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run database migrations and start the application in one command
+# Run database migrations and start the application
 CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
