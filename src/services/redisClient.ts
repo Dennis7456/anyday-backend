@@ -3,7 +3,7 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const redisHost = process.env.REDISHOST
+const redisHost = process.env.REDIS_HOST
 const redisToken = process.env.REDIS_TOKEN
 
 if (!redisHost) {
