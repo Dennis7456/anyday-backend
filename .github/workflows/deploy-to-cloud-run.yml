@@ -44,3 +44,7 @@ jobs:
             --region $REGION \
             --platform managed \
             --allow-unauthenticated \
+
+      - name: Verify deployment
+        run: |
+          gcloud run services describe $SERVICE_NAME --region $REGION --format="json"
