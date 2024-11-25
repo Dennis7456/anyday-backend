@@ -4,31 +4,35 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const redisHost = process.env.REDISHOST
-const redisPassword = process.env.REDISPASSWORD
+const redisToken = process.env.REDISPASSWORD
 
-if (!redisHost || !redisPassword) {
-  console.error('Missing Redis credentials')
+if (!redisHost) {
+  console.error('Missing Redis URL')
   process.exit(1)
 }
 
-const setupRedis = async () => {
-  const redis = new Redis({
-    url: redisHost,
-    token: redisPassword,
-  })
-
-  try {
-    // Attempt a basic Redis operation to verify the connection
-    await redis.set('foo', 'bar')
-    const data = await redis.get('foo')
-    console.log('Redis connected successfully.', data)
-  } catch (error) {
-    console.error('Error interacting with Redis:', error)
-    process.exit(1)
-  }
-
-  return redis
+if (!redisToken) {
+  console.error('Missing Redis Token')
+  process.exit(1)
 }
 
-// Call the async function
-setupRedis()
+const redisClient = new Redis({
+  url: redisHost,
+  token: redisToken,
+})
+
+// Test Redis connection only in non-test environments
+if (process.env.NODE_ENV !== 'test') {
+  ;(async () => {
+    try {
+      await redisClient.set('foo', 'bar')
+      const data = await redisClient.get('foo')
+      console.log('Redis connected successfully:', data)
+    } catch (error) {
+      console.error('Error interacting with Redis:', error)
+      process.exit(1)
+    }
+  })()
+}
+
+export default redisClient

@@ -6,6 +6,7 @@ import { APP_SECRET, REGISTER_EXPIRATION, baseUrl } from '../config/config'
 import { v4 as uuidv4 } from 'uuid'
 import { sendVerificationEmail } from '../services/sendVerificationEmail'
 import { Redis } from '@upstash/redis'
+import redisClient from '../services/redisClient'
 
 export type Role = 'STUDENT' | 'ADMIN' | 'WRITER' | 'QA'
 
@@ -42,11 +43,6 @@ export interface RegisterOrderResponse {
   verificationToken: string | null
 }
 
-const redis = new Redis({
-  url: process.env.REDISHOST!,
-  token: process.env.REDISPASSWORD!,
-})
-
 export const userResolvers = {
   Query: {
     users: async (_: unknown, __: unknown, context: GraphQLContext) => {
@@ -67,47 +63,6 @@ export const userResolvers = {
     },
   },
   Mutation: {
-    // registerAndCreateOrder: async (
-    //   _: unknown,
-    //   { input }: { input: RegisterAndCreateOrderInput }
-    // ): Promise<RegisterOrderResponse> => {
-    //   try {
-    //     // Generate a unique verification token
-    //     const verificationToken = uuidv4()
-
-    //     // Store the registration data in Redis temporarily with an expiration time
-    //     await redisClient.setEx(
-    //       verificationToken,
-    //       REGISTER_EXPIRATION,
-    //       JSON.stringify({
-    //         email: input.email, // Corrected typo 'emai' to 'email'
-    //         paperType: input.paperType,
-    //         numberOfPages: input.numberOfPages,
-    //         dueDate: input.dueDate,
-    //       })
-    //     )
-
-    //     // Send verification email
-    //     await sendVerificationEmail(input.email, verificationToken)
-
-    //     // Return a success response with the verification token
-    //     return {
-    //       success: true,
-    //       message: 'Verification Email Sent.',
-    //       verificationToken,
-    //     }
-    //   } catch (error) {
-    //     // Handle any errors that occur during the process
-    //     console.error('Error registering and creating order:', error)
-    //     return {
-    //       success: false,
-    //       message:
-    //         'An error occurred while processing your request. Please try again later.',
-    //       verificationToken: null,
-    //     }
-    //   }
-    // },
-
     registerAndCreateOrder: async (
       _: unknown,
       { input }: { input: RegisterAndCreateOrderInput }
@@ -116,7 +71,7 @@ export const userResolvers = {
         const verificationToken = uuidv4()
 
         // Store registration data in Redis with an expiration time
-        await redis.set(
+        await redisClient.set(
           verificationToken,
           JSON.stringify({
             email: input.email,
@@ -176,7 +131,7 @@ export const userResolvers = {
       redirectUrl: string
       token: string
     }> => {
-      const cachedData = await redis.get(token)
+      const cachedData = await redisClient.get(token)
 
       if (!cachedData) {
         return {
@@ -198,10 +153,10 @@ export const userResolvers = {
     completeRegistration: async (
       _: unknown,
       { token }: { token: string },
-      { redis }: { redis: Redis }
+      { redisClient }: { redisClient: Redis }
     ): Promise<{ valid: boolean; message: string }> => {
       try {
-        const cachedData = await redis.get(token)
+        const cachedData = await redisClient.get(token)
         if (!cachedData) {
           return {
             valid: false,
@@ -221,7 +176,7 @@ export const userResolvers = {
         })
 
         // Delete token after successful verification
-        await redis.del(token)
+        await redisClient.del(token)
 
         return {
           valid: true,

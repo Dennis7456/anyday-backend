@@ -14,7 +14,8 @@ import { Redis } from '@upstash/redis';
 
 describe('completeRegistration', () => {
   let server: FastifyInstance;
-  let redisMock: jest.Mocked<Redis>;
+  // let redisMock: jest.Mocked<Redis>;
+  let redisMock: jest.Mocked<Redis>
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -50,23 +51,21 @@ describe('completeRegistration', () => {
       numberOfPages: 5,
       dueDate: '2024-12-01',
     });
-  
-    // Mock Redis to return valid cached data for the token
+
+    // Mock Redis responses
     redisMock.get.mockResolvedValueOnce(mockCachedData);
-  
-    // Mock Redis to delete the token successfully
     redisMock.del.mockResolvedValueOnce(1);
-  
-    // Call the function with only the token
-    const result = await userResolvers.Mutation.completeRegistration(null, { token: mockToken }, { redis: redisMock });
-  
-    // Verify Redis.get is called with the correct token
+
+    // Call the resolver function
+    const result = await userResolvers.Mutation.completeRegistration(
+      null,
+      { token: mockToken },
+      { redisClient: redisMock }
+    );
+
+    // Assertions
     expect(redisMock.get).toHaveBeenCalledWith(mockToken);
-  
-    // Verify Redis.del is called to delete the token
     expect(redisMock.del).toHaveBeenCalledWith(mockToken);
-  
-    // Verify the function returns the correct success response
     expect(result).toEqual({
       valid: true,
       message: 'Registration completed successfully and order created.',
@@ -75,17 +74,19 @@ describe('completeRegistration', () => {
 
   it('should return an error if the token is invalid or expired', async () => {
     const mockToken = 'invalid-token';
-  
-    // Mock Redis to return null for an expired or invalid token
+
+    // Mock Redis to return null
     redisMock.get.mockResolvedValueOnce(null);
-  
-    // Call the function with the invalid token
-    const result = await userResolvers.Mutation.completeRegistration(null, { token: mockToken }, { redis: redisMock });
-  
-    // Verify Redis.get is called with the correct token
+
+    // Call the resolver function
+    const result = await userResolvers.Mutation.completeRegistration(
+      null,
+      { token: mockToken },
+      { redisClient: redisMock }
+    );
+
+    // Assertions
     expect(redisMock.get).toHaveBeenCalledWith(mockToken);
-  
-    // Verify the function returns the expected error response
     expect(result).toEqual({
       valid: false,
       message: 'Invalid or expired token.',
@@ -94,19 +95,24 @@ describe('completeRegistration', () => {
 
   it('should handle Redis errors gracefully', async () => {
     const mockToken = 'error-token';
-  
+
     // Mock Redis to throw an error
     redisMock.get.mockRejectedValueOnce(new Error('Redis error'));
-  
-    // Call the function and expect it to throw an error
-    await expect(userResolvers.Mutation.completeRegistration(null, { token: mockToken }, { redis: redisMock }))
-      .rejects.toThrow('An error occurred while completing registration.');
-  
-    // Verify Redis.get is called with the correct token
+
+    // Suppress console.error for this test
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Call the resolver function and expect it to throw
+    await expect(
+      userResolvers.Mutation.completeRegistration(null, { token: mockToken }, { redisClient: redisMock })
+    ).rejects.toThrow('An error occurred while completing registration.');
+
+    // Assertions
     expect(redisMock.get).toHaveBeenCalledWith(mockToken);
-  
-    // Ensure Redis.del is not called, as the process should halt on error
     expect(redisMock.del).not.toHaveBeenCalled();
+
+    // Restore console.error
+  consoleErrorSpy.mockRestore();
   });
   
 });
