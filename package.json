@@ -11,7 +11,7 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && npm run generate:prisma && tsc && cp src/schema.graphql dist/src/schema.graphql",
     "generate:prisma": "prisma generate",
-    "start": "ts-node dist/src/index.js",
+    "start": "node dist/src/index.js",
     "type-check": "tsc --noEmit",
     "prepare": "husky install",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,graphql}\"",
