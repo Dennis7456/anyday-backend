@@ -49,6 +49,30 @@ export const notificationResolvers = {
 
       return notification
     },
+
+    // Get notifications by order
+    notificationsByOrder: async (
+      _: unknown,
+      { orderId }: { orderId: string },
+      context: GraphQLContext
+    ) => {
+      if (!context.currentUser) throw new Error('Please login to continue')
+
+      const notifications = await context.prisma.notification.findMany({
+        where: {
+          recipientId: context.currentUser.id,
+          link: {
+            contains: orderId,
+          },
+        },
+      })
+
+      if (notifications.length === 0) {
+        throw new Error('No notifications found for this order')
+      }
+
+      return notifications
+    },
   },
   Mutation: {
     markNotificationAsRead: async (
