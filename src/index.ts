@@ -31,7 +31,8 @@ export const app: FastifyInstance = Fastify({
 // ].filter(Boolean) // Remove undefined/null origins
 
 app.register(cors, {
-  origin: ['https://anydayessay.com', 'https://anyday-essay-client.web.app'],
+  // origin: ['https://anydayessay.com', 'https://anyday-essay-client.web.app'],
+  origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,

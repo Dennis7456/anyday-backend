@@ -33,27 +33,30 @@ exports.app = (0, fastify_1.default)({
     logger: true,
 });
 // CORS Configuration
-const allowedOrigins = [
-    process.env.FRONTEND_URL,
-    'https://anydayessay.com',
-    'https://anyday-essay-client.web.app',
-    'http://localhost:3000',
-    'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
-].filter(Boolean); // Remove undefined/null origins
+// const allowedOrigins = [
+//   process.env.FRONTEND_URL,
+//   'https://anydayessay.com',
+//   'https://anyday-essay-client.web.app',
+//   'http://localhost:3000',
+//   'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
+// ].filter(Boolean) // Remove undefined/null origins
 exports.app.register(cors_1.default, {
-    origin: (origin, cb) => {
-        console.log('Incoming Origin:', origin);
-        if (!origin || allowedOrigins.includes(origin)) {
-            cb(null, true);
-        }
-        else {
-            console.error('CORS Denied for:', origin);
-            cb(new Error('CORS Error: Origin not allowed'), false);
-        }
-    },
+    origin: ['https://anydayessay.com', 'https://anyday-essay-client.web.app'],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
+    // origin: (origin, cb) => {
+    //   console.log('Incoming Origin:', origin)
+    //   if (!origin || allowedOrigins.includes(origin)) {
+    //     cb(null, true)
+    //   } else {
+    //     console.error('CORS Denied for:', origin)
+    //     cb(new Error('CORS Error: Origin not allowed'), false)
+    //   }
+    // },
+    // methods: ['GET', 'POST', 'OPTIONS'],
+    // allowedHeaders: ['Content-Type', 'Authorization'],
+    // credentials: true,
 });
 exports.app.addHook('onRequest', (req, reply, done) => {
     console.log(`[${req.method}] ${req.url}`);
