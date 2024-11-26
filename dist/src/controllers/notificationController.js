@@ -37,6 +37,23 @@ exports.notificationResolvers = {
             }
             return notification;
         }),
+        // Get notifications by order
+        notificationsByOrder: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { orderId }, context) {
+            if (!context.currentUser)
+                throw new Error('Please login to continue');
+            const notifications = yield context.prisma.notification.findMany({
+                where: {
+                    recipientId: context.currentUser.id,
+                    link: {
+                        contains: orderId,
+                    },
+                },
+            });
+            if (notifications.length === 0) {
+                throw new Error('No notifications found for this order');
+            }
+            return notifications;
+        }),
     },
     Mutation: {
         markNotificationAsRead: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { notificationId }, context) {

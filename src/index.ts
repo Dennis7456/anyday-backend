@@ -2,6 +2,7 @@ import 'graphql-import-node'
 import Fastify, { FastifyInstance } from 'fastify'
 import dotenv from 'dotenv'
 import { AddressInfo } from 'net'
+import fastifyCors from '@fastify/cors' // Import Fastify CORS plugin
 import { registerIndexRoute } from './routes/indexRoute'
 import { registerGraphQLRoute } from './routes/graphqlRoute'
 import { registerGetRedisDataRoute } from './routes/getRedisDataRoute'
@@ -17,6 +18,20 @@ dotenv.config()
 // Initialize Fastify application
 export const app: FastifyInstance = Fastify({
   logger: true,
+})
+
+// Enable CORS
+app.register(fastifyCors, {
+  origin: (origin, cb) => {
+    const allowedOrigins = ['https://anydayessay.com', 'http://localhost:3000']
+    if (!origin || allowedOrigins.includes(origin)) {
+      cb(null, true) // Allow the request
+    } else {
+      cb(new Error('Not allowed by CORS'), false) // Block the request
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+  credentials: true, // Allow cookies and authorization headers
 })
 
 // Function to register routes with error handling
