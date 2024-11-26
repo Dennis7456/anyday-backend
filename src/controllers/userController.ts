@@ -7,8 +7,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { sendVerificationEmail } from '../services/sendVerificationEmail'
 import { Redis } from '@upstash/redis'
 import redisClient from '../services/redisClient'
-
-export type Role = 'STUDENT' | 'ADMIN' | 'WRITER' | 'QA'
+import { Role } from '@prisma/client'
 
 interface User {
   id: string
@@ -35,6 +34,16 @@ interface CreateStudentInput {
   phoneNumber: string
   dateOfBirth: Date
   password: string
+}
+
+interface UpdateUserInput {
+  firstName: string
+  lastName: string
+  userName: string
+  email: string
+  phoneNumber: string
+  dateOfBirth: string
+  role: Role
 }
 
 export interface RegisterOrderResponse {
@@ -238,6 +247,44 @@ export const userResolvers = {
       } catch (error) {
         console.error('Error creating student:', error)
         throw new Error('An error occurred while creating the student.')
+      }
+    },
+    updateUser: async (
+      _: unknown,
+      { id, input }: { id: string; input: UpdateUserInput },
+      context: GraphQLContext
+    ) => {
+      try {
+        // Validate the role input
+        if (input.role && !Object.values(Role).includes(input.role as Role)) {
+          throw new Error('Invalid role value')
+        }
+
+        const updatedUser = await context.prisma.user.update({
+          where: { id },
+          data: {
+            ...input,
+            role: input.role as Role, // Cast the string to the Role enum
+          },
+        })
+
+        return updatedUser
+      } catch (error) {
+        console.error('Error updating user:', error)
+        throw new Error('An error occurred while updating the user.')
+      }
+    },
+    deleteUser: async (
+      _: unknown,
+      { id }: { id: string },
+      context: GraphQLContext
+    ): Promise<{ message: string }> => {
+      try {
+        await context.prisma.user.delete({ where: { id } })
+        return { message: 'User deleted successfully' }
+      } catch (error) {
+        console.error('Error deleting user:', error)
+        throw new Error('An error occurred while deleting the user.')
       }
     },
   },
