@@ -41,10 +41,20 @@ export function registerGraphQLRoute(server: FastifyInstance) {
         body: req.body,
       }
 
+      // if (shouldRenderGraphiQL(request)) {
+      //   const responseBody = renderGraphiQL({ endpoint: '/graphql' })
+      //   reply.header('Content-Type', 'text/html')
+      //   reply.status(200).send(responseBody)
+      //   return
+      // }
+
       if (shouldRenderGraphiQL(request)) {
-        const responseBody = renderGraphiQL({ endpoint: '/graphql' })
         reply.header('Content-Type', 'text/html')
-        reply.status(200).send(responseBody)
+        reply.send(
+          renderGraphiQL({
+            endpoint: '/graphql',
+          })
+        )
         return
       }
 
@@ -59,7 +69,17 @@ export function registerGraphQLRoute(server: FastifyInstance) {
         variables,
       })
 
+      if (result.type === 'RESPONSE') {
+        result.headers.forEach(({ name, value }) => {
+          reply.header(name, value)
+        })
+        reply.status(result.status)
+        reply.serialize(result.payload)
+        reply.send(result.payload)
+        console.log(reply)
+      }
       sendResult(result, reply.raw)
+      console.log(result, reply.raw)
     },
   })
 }

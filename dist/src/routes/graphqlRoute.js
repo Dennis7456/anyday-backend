@@ -40,10 +40,17 @@ function registerGraphQLRoute(server) {
                 query: req.query,
                 body: req.body,
             };
+            // if (shouldRenderGraphiQL(request)) {
+            //   const responseBody = renderGraphiQL({ endpoint: '/graphql' })
+            //   reply.header('Content-Type', 'text/html')
+            //   reply.status(200).send(responseBody)
+            //   return
+            // }
             if ((0, graphql_helix_1.shouldRenderGraphiQL)(request)) {
-                const responseBody = (0, graphql_helix_1.renderGraphiQL)({ endpoint: '/graphql' });
                 reply.header('Content-Type', 'text/html');
-                reply.status(200).send(responseBody);
+                reply.send((0, graphql_helix_1.renderGraphiQL)({
+                    endpoint: '/graphql',
+                }));
                 return;
             }
             const { operationName, query, variables } = (0, graphql_helix_1.getGraphQLParameters)(request);
@@ -55,7 +62,17 @@ function registerGraphQLRoute(server) {
                 query,
                 variables,
             });
+            if (result.type === 'RESPONSE') {
+                result.headers.forEach(({ name, value }) => {
+                    reply.header(name, value);
+                });
+                reply.status(result.status);
+                reply.serialize(result.payload);
+                reply.send(result.payload);
+                console.log(reply);
+            }
             (0, graphql_helix_1.sendResult)(result, reply.raw);
+            console.log(result, reply.raw);
         }),
     });
 }

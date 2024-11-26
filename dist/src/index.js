@@ -17,6 +17,7 @@ require("graphql-import-node");
 const fastify_1 = __importDefault(require("fastify"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("@fastify/cors"));
+const formbody_1 = __importDefault(require("@fastify/formbody"));
 const indexRoute_1 = require("./routes/indexRoute");
 const graphqlRoute_1 = require("./routes/graphqlRoute");
 const getRedisDataRoute_1 = require("./routes/getRedisDataRoute");
@@ -32,41 +33,63 @@ dotenv_1.default.config();
 exports.app = (0, fastify_1.default)({
     logger: true,
 });
-// CORS Configuration
-// const allowedOrigins = [
-//   process.env.FRONTEND_URL,
-//   'https://anydayessay.com',
-//   'https://anyday-essay-client.web.app',
-//   'http://localhost:3000',
-//   'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
-// ].filter(Boolean) // Remove undefined/null origins
+// Normalize allowed origins
+const allowedOrigins = [
+    // process.env.FRONTEND_URL,
+    'https://anydayessay.com',
+    'https://anyday-essay-client.web.app',
+    'http://localhost:3000',
+    'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
+].filter(Boolean);
 exports.app.register(cors_1.default, {
-    origin: ['https://anydayessay.com', 'https://anyday-essay-client.web.app'],
+    origin: (origin, cb) => {
+        console.log('Incoming Origin:', origin);
+        if (!origin || allowedOrigins.includes(origin)) {
+            cb(null, true);
+        }
+        else {
+            console.error('CORS Denied for:', origin);
+            cb(new Error('CORS Error: Origin not allowed'), false);
+        }
+    },
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-    // origin: (origin, cb) => {
-    //   console.log('Incoming Origin:', origin)
-    //   if (!origin || allowedOrigins.includes(origin)) {
-    //     cb(null, true)
-    //   } else {
-    //     console.error('CORS Denied for:', origin)
-    //     cb(new Error('CORS Error: Origin not allowed'), false)
-    //   }
-    // },
-    // methods: ['GET', 'POST', 'OPTIONS'],
-    // allowedHeaders: ['Content-Type', 'Authorization'],
-    // credentials: true,
 });
+exports.app.register(formbody_1.default);
+if (!exports.app.hasDecorator('multipartErrors')) {
+    // app.register(FastifyMultipart);
+}
 exports.app.addHook('onRequest', (req, reply, done) => {
     console.log(`[${req.method}] ${req.url}`);
+    if (req.method === 'OPTIONS') {
+        console.log('Preflight Request:', req.headers.origin);
+    }
     if (req.body)
         console.log('Body:', req.body);
     if (req.headers)
         console.log('Headers:', req.headers);
+    console.log('--- Incoming Request ---');
+    console.log(`[${req.method}] ${req.url}`);
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    console.log('Query Params:', req.query);
+    console.log('--- End of Request ---');
     done();
 });
-// Centralized Route Registration
+exports.app.setErrorHandler((error, request, reply) => {
+    const origin = request.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+        reply.header('Access-Control-Allow-Origin', origin);
+    }
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    // Log the error for debugging
+    exports.app.log.error(error);
+    // Send the error response
+    reply.status(500).send({ error: error.message });
+});
+// Route registration
 const routes = [
     { handler: indexRoute_1.registerIndexRoute, name: 'Index' },
     { handler: graphqlRoute_1.registerGraphQLRoute, name: 'GraphQL' },
@@ -90,32 +113,24 @@ const registerRoutes = () => {
     routes.forEach(({ handler, name }) => {
         try {
             handler(exports.app);
-            console.log(`Registered ${name} route`);
+            console.log(`Registered route: ${name}`);
         }
         catch (err) {
-            console.error(`Error registering ${name} route:`, err);
+            console.error(`Error registering route ${name}:`, err);
         }
     });
 };
 // Start the server
 const start = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Register all routes
         registerRoutes();
-        // Bind server to 0.0.0.0 to allow external access in Cloud Run
         const address = yield exports.app.listen({ port: 8080, host: '0.0.0.0' });
-        if (typeof address !== 'string') {
-            const addr = address;
-            console.log(`Server listening on port ${addr.port}`);
-        }
-        else {
-            console.log(`Server listening at ${address}`);
-        }
+        const portInfo = typeof address === 'string' ? address : address.port;
+        console.log(`Server running at port ${portInfo}`);
     }
     catch (err) {
         exports.app.log.error(err);
         process.exit(1);
     }
 });
-// Run the server
 start();
