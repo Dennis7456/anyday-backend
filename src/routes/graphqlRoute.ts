@@ -15,18 +15,24 @@ export function registerGraphQLRoute(server: FastifyInstance) {
   server.route({
     method: ['POST', 'GET', 'OPTIONS'],
     url: '/graphql',
+
     handler: async (req: FastifyRequest, reply: FastifyReply) => {
-      console.log('Request Body:', req.body)
-      // Handle OPTIONS preflight requests for CORS
+      // Handle preflight OPTIONS request
       if (req.method === 'OPTIONS') {
         reply
           .header('Access-Control-Allow-Origin', req.headers.origin || '*')
           .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
           .header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-          .status(204) // No Content
+          .status(204)
           .send()
         return
       }
+
+      // Set CORS headers for other requests
+      reply
+        .header('Access-Control-Allow-Origin', req.headers.origin || '*')
+        .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        .header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
       const request: Request = {
         headers: req.headers,

@@ -26,29 +26,29 @@ const createStripeSessionRoute_1 = require("./routes/createStripeSessionRoute");
 const stripeWebHookHandlerRoute_1 = require("./routes/stripeWebHookHandlerRoute");
 const apolloClient_1 = require("./routes/client/apolloClient");
 const redisClient_1 = __importDefault(require("./services/redisClient"));
+const verifyEmailRoute_1 = require("./routes/verifyEmailRoute");
 dotenv_1.default.config();
 // Initialize Fastify application
 exports.app = (0, fastify_1.default)({
     logger: true,
 });
-console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+// CORS Configuration
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://anydayessay.com',
+    'https://anyday-essay-client.web.app',
+    'http://localhost:3000',
+    'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
+].filter(Boolean); // Remove undefined/null origins
 exports.app.register(cors_1.default, {
     origin: (origin, cb) => {
         console.log('Incoming Origin:', origin);
-        const allowedOrigins = [
-            process.env.FRONTEND_URL,
-            'https://anydayessay.com',
-            'https://anyday-essay-client.web.app',
-            'http://localhost:3000',
-            'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
-        ];
         if (!origin || allowedOrigins.includes(origin)) {
-            console.log('CORS Allowed for:', origin);
             cb(null, true);
         }
         else {
             console.error('CORS Denied for:', origin);
-            cb(new Error('Not allowed by CORS'), false);
+            cb(new Error('CORS Error: Origin not allowed'), false);
         }
     },
     methods: ['GET', 'POST', 'OPTIONS'],
@@ -56,63 +56,34 @@ exports.app.register(cors_1.default, {
     credentials: true,
 });
 exports.app.addHook('onRequest', (req, reply, done) => {
-    console.log('Request Method:', req.method);
-    console.log('Request URL:', req.url);
-    console.log('Request Body:', req.body);
-    console.log('Request Headers:', req.headers);
+    console.log(`[${req.method}] ${req.url}`);
+    if (req.body)
+        console.log('Body:', req.body);
+    if (req.headers)
+        console.log('Headers:', req.headers);
     done();
 });
-// Function to register routes with error handling
+// Centralized Route Registration
+const routes = [
+    { handler: indexRoute_1.registerIndexRoute, name: 'Index' },
+    { handler: graphqlRoute_1.registerGraphQLRoute, name: 'GraphQL' },
+    { handler: (app) => (0, getRedisDataRoute_1.registerGetRedisDataRoute)(app, redisClient_1.default), name: 'Get Redis Data' },
+    { handler: uploadFilesRoute_1.registerUploadFilesRoute, name: 'Upload Files' },
+    { handler: showFileRoute_1.registerListFilesRoute, name: 'List Files' },
+    { handler: createStripeSessionRoute_1.registerCreateStripePaymentSessionRoute, name: 'Create Stripe Payment Session' },
+    { handler: (app) => (0, stripeWebHookHandlerRoute_1.registerStripeWebHookHandlerRoute)(app, apolloClient_1.apolloClient), name: 'Stripe WebHook Handler' },
+    { handler: verifyEmailRoute_1.registerVerifyEmailRoute, name: 'Verify Email' },
+];
 const registerRoutes = () => {
-    try {
-        (0, indexRoute_1.registerIndexRoute)(exports.app);
-        console.log('Registered index route');
-    }
-    catch (err) {
-        console.error('Error registering index route:', err);
-    }
-    try {
-        (0, graphqlRoute_1.registerGraphQLRoute)(exports.app);
-        console.log('Registered GraphQL route');
-    }
-    catch (err) {
-        console.error('Error registering GraphQL route:', err);
-    }
-    try {
-        (0, getRedisDataRoute_1.registerGetRedisDataRoute)(exports.app, redisClient_1.default);
-        console.log('Registered Get Redis Data route');
-    }
-    catch (err) {
-        console.error('Error registering Get Redis Data route:', err);
-    }
-    try {
-        (0, uploadFilesRoute_1.registerUploadFilesRoute)(exports.app);
-        console.log('Registered Upload Files route');
-    }
-    catch (err) {
-        console.error('Error registering Upload Files route:', err);
-    }
-    try {
-        (0, showFileRoute_1.registerListFilesRoute)(exports.app);
-        console.log('Registered List Files route');
-    }
-    catch (err) {
-        console.error('Error registering List Files route:', err);
-    }
-    try {
-        (0, createStripeSessionRoute_1.registerCreateStripePaymentSessionRoute)(exports.app);
-        console.log('Registered Create Stripe Payment Session route');
-    }
-    catch (err) {
-        console.error('Error registering Create Stripe Payment Session route:', err);
-    }
-    try {
-        (0, stripeWebHookHandlerRoute_1.registerStripeWebHookHandlerRoute)(exports.app, apolloClient_1.apolloClient);
-        console.log('Registered Stripe WebHook Handler route');
-    }
-    catch (err) {
-        console.error('Error registering Stripe WebHook Handler route:', err);
-    }
+    routes.forEach(({ handler, name }) => {
+        try {
+            handler(exports.app);
+            console.log(`Registered ${name} route`);
+        }
+        catch (err) {
+            console.error(`Error registering ${name} route:`, err);
+        }
+    });
 };
 // Start the server
 const start = () => __awaiter(void 0, void 0, void 0, function* () {
@@ -123,7 +94,10 @@ const start = () => __awaiter(void 0, void 0, void 0, function* () {
         const address = yield exports.app.listen({ port: 8080, host: '0.0.0.0' });
         if (typeof address !== 'string') {
             const addr = address;
-            console.log(`Server listening on ${addr.port}`);
+            console.log(`Server listening on port ${addr.port}`);
+        }
+        else {
+            console.log(`Server listening at ${address}`);
         }
     }
     catch (err) {

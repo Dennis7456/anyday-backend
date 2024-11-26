@@ -21,23 +21,23 @@ export const app: FastifyInstance = Fastify({
   logger: true,
 })
 
-console.log('FRONTEND_URL:', process.env.FRONTEND_URL)
+// CORS Configuration
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://anydayessay.com',
+  'https://anyday-essay-client.web.app',
+  'http://localhost:3000',
+  'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
+].filter(Boolean) // Remove undefined/null origins
+
 app.register(cors, {
   origin: (origin, cb) => {
     console.log('Incoming Origin:', origin)
-    const allowedOrigins = [
-      process.env.FRONTEND_URL,
-      'https://anydayessay.com',
-      'https://anyday-essay-client.web.app',
-      'http://localhost:3000',
-      'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
-    ]
     if (!origin || allowedOrigins.includes(origin)) {
-      console.log('CORS Allowed for:', origin)
       cb(null, true)
     } else {
       console.error('CORS Denied for:', origin)
-      cb(new Error('Not allowed by CORS'), false)
+      cb(new Error('CORS Error: Origin not allowed'), false)
     }
   },
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -46,70 +46,42 @@ app.register(cors, {
 })
 
 app.addHook('onRequest', (req, reply, done) => {
-  console.log('Request Method:', req.method)
-  console.log('Request URL:', req.url)
-  console.log('Request Body:', req.body)
-  console.log('Request Headers:', req.headers)
+  console.log(`[${req.method}] ${req.url}`)
+  if (req.body) console.log('Body:', req.body)
+  if (req.headers) console.log('Headers:', req.headers)
   done()
 })
 
-// Function to register routes with error handling
+// Centralized Route Registration
+const routes: { handler: (app: FastifyInstance) => void; name: string }[] = [
+  { handler: registerIndexRoute, name: 'Index' },
+  { handler: registerGraphQLRoute, name: 'GraphQL' },
+  {
+    handler: (app) => registerGetRedisDataRoute(app, redisClient),
+    name: 'Get Redis Data',
+  },
+  { handler: registerUploadFilesRoute, name: 'Upload Files' },
+  { handler: registerListFilesRoute, name: 'List Files' },
+  {
+    handler: registerCreateStripePaymentSessionRoute,
+    name: 'Create Stripe Payment Session',
+  },
+  {
+    handler: (app) => registerStripeWebHookHandlerRoute(app, apolloClient),
+    name: 'Stripe WebHook Handler',
+  },
+  { handler: registerVerifyEmailRoute, name: 'Verify Email' },
+]
+
 const registerRoutes = () => {
-  try {
-    registerIndexRoute(app)
-    console.log('Registered index route')
-  } catch (err) {
-    console.error('Error registering index route:', err)
-  }
-
-  try {
-    registerGraphQLRoute(app)
-    console.log('Registered GraphQL route')
-  } catch (err) {
-    console.error('Error registering GraphQL route:', err)
-  }
-
-  try {
-    registerGetRedisDataRoute(app, redisClient)
-    console.log('Registered Get Redis Data route')
-  } catch (err) {
-    console.error('Error registering Get Redis Data route:', err)
-  }
-
-  try {
-    registerUploadFilesRoute(app)
-    console.log('Registered Upload Files route')
-  } catch (err) {
-    console.error('Error registering Upload Files route:', err)
-  }
-
-  try {
-    registerListFilesRoute(app)
-    console.log('Registered List Files route')
-  } catch (err) {
-    console.error('Error registering List Files route:', err)
-  }
-
-  try {
-    registerCreateStripePaymentSessionRoute(app)
-    console.log('Registered Create Stripe Payment Session route')
-  } catch (err) {
-    console.error('Error registering Create Stripe Payment Session route:', err)
-  }
-
-  try {
-    registerStripeWebHookHandlerRoute(app, apolloClient)
-    console.log('Registered Stripe WebHook Handler route')
-  } catch (err) {
-    console.error('Error registering Stripe WebHook Handler route:', err)
-  }
-
-  try {
-    registerVerifyEmailRoute(app)
-    console.log('Registered Verify Email route')
-  } catch (err) {
-    console.error('Error registering Stripe WebHook Handler route:', err)
-  }
+  routes.forEach(({ handler, name }) => {
+    try {
+      handler(app)
+      console.log(`Registered ${name} route`)
+    } catch (err) {
+      console.error(`Error registering ${name} route:`, err)
+    }
+  })
 }
 
 // Start the server
@@ -122,7 +94,9 @@ const start = async () => {
     const address = await app.listen({ port: 8080, host: '0.0.0.0' })
     if (typeof address !== 'string') {
       const addr = address as AddressInfo
-      console.log(`Server listening on ${addr.port}`)
+      console.log(`Server listening on port ${addr.port}`)
+    } else {
+      console.log(`Server listening at ${address}`)
     }
   } catch (err) {
     app.log.error(err)

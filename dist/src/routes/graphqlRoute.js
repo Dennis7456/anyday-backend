@@ -19,17 +19,21 @@ function registerGraphQLRoute(server) {
         method: ['POST', 'GET', 'OPTIONS'],
         url: '/graphql',
         handler: (req, reply) => __awaiter(this, void 0, void 0, function* () {
-            console.log('Request Body:', req.body);
-            // Handle OPTIONS preflight requests for CORS
+            // Handle preflight OPTIONS request
             if (req.method === 'OPTIONS') {
                 reply
                     .header('Access-Control-Allow-Origin', req.headers.origin || '*')
                     .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
                     .header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-                    .status(204) // No Content
+                    .status(204)
                     .send();
                 return;
             }
+            // Set CORS headers for other requests
+            reply
+                .header('Access-Control-Allow-Origin', req.headers.origin || '*')
+                .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+                .header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
             const request = {
                 headers: req.headers,
                 method: req.method,
