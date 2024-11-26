@@ -22,7 +22,6 @@ export const app: FastifyInstance = Fastify({
 })
 
 console.log('FRONTEND_URL:', process.env.FRONTEND_URL)
-
 app.register(cors, {
   origin: (origin, cb) => {
     console.log('Incoming Origin:', origin)
@@ -34,8 +33,10 @@ app.register(cors, {
       'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
     ]
     if (!origin || allowedOrigins.includes(origin)) {
+      console.log('CORS Allowed for:', origin)
       cb(null, true)
     } else {
+      console.error('CORS Denied for:', origin)
       cb(new Error('Not allowed by CORS'), false)
     }
   },

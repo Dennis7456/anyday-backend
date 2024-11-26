@@ -16,7 +16,7 @@ const context_1 = require("../context/context");
 // Define and export the route as a function
 function registerGraphQLRoute(server) {
     server.route({
-        method: ['POST', 'GET'],
+        method: ['POST', 'GET', 'OPTIONS'],
         url: '/graphql',
         handler: (req, reply) => __awaiter(this, void 0, void 0, function* () {
             const request = {
