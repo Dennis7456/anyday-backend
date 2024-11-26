@@ -44,9 +44,11 @@ exports.app.register(cors_1.default, {
             'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
         ];
         if (!origin || allowedOrigins.includes(origin)) {
+            console.log('CORS Allowed for:', origin);
             cb(null, true);
         }
         else {
+            console.error('CORS Denied for:', origin);
             cb(new Error('Not allowed by CORS'), false);
         }
     },

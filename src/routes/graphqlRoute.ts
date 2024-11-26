@@ -16,6 +16,7 @@ export function registerGraphQLRoute(server: FastifyInstance) {
     method: ['POST', 'GET', 'OPTIONS'],
     url: '/graphql',
     handler: async (req: FastifyRequest, reply: FastifyReply) => {
+      console.log('Request Body:', req.body)
       // Handle OPTIONS preflight requests for CORS
       if (req.method === 'OPTIONS') {
         reply

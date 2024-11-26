@@ -2,7 +2,6 @@ import 'graphql-import-node'
 import Fastify, { FastifyInstance } from 'fastify'
 import dotenv from 'dotenv'
 import { AddressInfo } from 'net'
-// import fastifyCors from '@fastify/cors' // Import Fastify CORS plugin
 import cors from '@fastify/cors'
 import { registerIndexRoute } from './routes/indexRoute'
 import { registerGraphQLRoute } from './routes/graphqlRoute'
