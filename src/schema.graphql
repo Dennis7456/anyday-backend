@@ -242,6 +242,25 @@ input CreateStudentInput {
   password: String!
 }
 
+# Input and Payload Types
+input UploadFilesInput {
+  orderId: String!
+  files: [FileInput!]!
+}
+
+input FileInput {
+  url: String!
+  name: String!
+  size: String!
+  mimeType: String
+}
+
+type UploadFilesPayload {
+  success: Boolean!
+  message: String!
+  files: [File!]!
+}
+
 type RegisterOrderResponse {
   success: Boolean!
   message: String!
@@ -275,6 +294,19 @@ type Query {
   loggedInUser: User!
   orders: [Order!]!
   order(id: ID!): Order
+  # Assignment Queries
+  assignmentsByOrder(orderId: String!): [Assignment!]!
+  assignmentsByWriter(writerId: String!): [Assignment!]!
+  # Payment Queries
+  paymentsByOrder(orderId: String!): [Payment!]!
+  paymentByTransactionId(transactionId: String!): Payment
+  # File Queries
+  filesByOrder(orderId: String!): [File!]!
+  # Notification Queries
+  notificationsByOrder(orderId: String!): [Notification!]!
+  # Chat Queries
+  chatsByOrder(orderId: String!): [Chat!]!
+  chatsByUser(userId: String!): [Chat!]!
 }
 
 # Mutations
@@ -292,4 +324,6 @@ type Mutation {
   updateUser(id: ID!, input: UpdateUserInput!): User!
   deleteUser(id: ID!): String!
   deleteOrder(id: ID!): Order!
+  # File Mutations
+  uploadFiles(input: UploadFilesInput!): UploadFilesPayload!
 }
