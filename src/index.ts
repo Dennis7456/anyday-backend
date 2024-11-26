@@ -31,6 +31,7 @@ app.register(cors, {
       'https://anydayessay.com',
       'https://anyday-essay-client.web.app',
       'http://localhost:3000',
+      'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
     ]
     if (!origin || allowedOrigins.includes(origin)) {
       cb(null, true)
@@ -41,6 +42,14 @@ app.register(cors, {
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
+})
+
+app.addHook('onRequest', (req, reply, done) => {
+  console.log('Request Method:', req.method)
+  console.log('Request URL:', req.url)
+  console.log('Request Body:', req.body)
+  console.log('Request Headers:', req.headers)
+  done()
 })
 
 // Function to register routes with error handling

@@ -13,7 +13,7 @@ import { contextFactory } from '../context/context'
 // Define and export the route as a function
 export function registerGraphQLRoute(server: FastifyInstance) {
   server.route({
-    method: ['POST', 'GET'],
+    method: ['POST', 'GET', 'OPTIONS'],
     url: '/graphql',
     handler: async (req: FastifyRequest, reply: FastifyReply) => {
       const request: Request = {

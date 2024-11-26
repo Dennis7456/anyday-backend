@@ -40,6 +40,7 @@ exports.app.register(cors_1.default, {
             process.env.FRONTEND_URL,
             'https://anydayessay.com',
             'https://anyday-essay-client.web.app',
+            'http://localhost:3000',
         ];
         if (!origin || allowedOrigins.includes(origin)) {
             cb(null, true);
