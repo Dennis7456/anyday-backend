@@ -292,8 +292,8 @@ type Query {
   users: [User!]!
   user(id: ID!): User
   loggedInUser: User!
-  orders: [Order!]!
-  order(id: ID!): Order
+  getOrders: [Order!]!
+  getOrder(id: ID!): Order
   # Assignment Queries
   assignmentsByOrder(orderId: String!): [Assignment!]!
   assignmentsByWriter(writerId: String!): [Assignment!]!

@@ -92,7 +92,7 @@ describe('Order Resolvers', () => {
       }
     `;
 
-    const result = await orderResolvers.Query.orders(null, {}, mockContext);
+    const result = await orderResolvers.Query.getOrders(null, {}, mockContext);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('1');
     expect(result[0].instructions).toBe('Test order 1');
@@ -214,7 +214,7 @@ describe('Order Resolvers', () => {
       currentUser: null
     };
 
-    await expect(orderResolvers.Query.orders(null, {}, contextWithoutUser))
+    await expect(orderResolvers.Query.getOrders(null, {}, contextWithoutUser))
       .rejects
       .toThrow('Please login');
   });
@@ -227,7 +227,7 @@ describe('Order Resolvers', () => {
 
     const orderId = '1';
 
-    await expect(orderResolvers.Query.order(null, { id: orderId }, contextWithoutUser))
+    await expect(orderResolvers.Query.getOrder(null, { id: orderId }, contextWithoutUser))
       .rejects
       .toThrow('Please login to continue');
   });
@@ -261,7 +261,7 @@ describe('Order Resolvers', () => {
 
     const orderId = '2'; // Some order ID
 
-    await expect(orderResolvers.Query.order(null, { id: orderId }, contextWithUser))
+    await expect(orderResolvers.Query.getOrder(null, { id: orderId }, contextWithUser))
       .rejects
       .toThrow('Order not found or you do not have permission to view it');
   });
@@ -308,7 +308,7 @@ describe('Order Resolvers', () => {
 
     const orderId = '1';
 
-    const result = await orderResolvers.Query.order(null, { id: orderId }, contextWithUser);
+    const result = await orderResolvers.Query.getOrder(null, { id: orderId }, contextWithUser);
     expect(result).toEqual(mockOrder);
   });
 
@@ -354,7 +354,7 @@ describe('Order Resolvers', () => {
       currentUser: mockUser,
     };
 
-    await expect(orderResolvers.Query.orders(null, {}, contextWithUser))
+    await expect(orderResolvers.Query.getOrders(null, {}, contextWithUser))
       .rejects
       .toThrow('Unauthorized access to orders');
   });
@@ -413,7 +413,7 @@ describe('Order Resolvers', () => {
       currentUser: mockUser,
     };
 
-    const result = await orderResolvers.Query.orders(null, {}, contextWithUser);
+    const result = await orderResolvers.Query.getOrders(null, {}, contextWithUser);
     expect(result).toEqual(userOrders);
     expect(contextWithUser.prisma.order.findMany).toHaveBeenCalledWith({
       where: { studentId: mockUser.id },

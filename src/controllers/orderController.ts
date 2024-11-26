@@ -51,7 +51,7 @@ export interface CreateOrderInput {
 
 export const orderResolvers = {
   Query: {
-    orders: async (_: unknown, __: unknown, context: GraphQLContext) => {
+    getOrders: async (_: unknown, __: unknown, context: GraphQLContext) => {
       if (!context.currentUser) {
         throw new Error('Please login to continue')
       }
@@ -77,7 +77,7 @@ export const orderResolvers = {
       return orders
     },
 
-    order: async (
+    getOrder: async (
       _: unknown,
       { id }: { id: string },
       context: GraphQLContext

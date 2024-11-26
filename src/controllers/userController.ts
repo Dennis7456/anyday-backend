@@ -227,6 +227,12 @@ export const userResolvers = {
 
       try {
         const hashedPassword = await hash(password, 10)
+        // Ensure dateOfBirth is a valid Date object
+        const formattedDateOfBirth = new Date(dateOfBirth)
+
+        if (isNaN(formattedDateOfBirth.getTime())) {
+          throw new Error('Invalid date format for dateOfBirth')
+        }
 
         const student = await context.prisma.user.create({
           data: {
@@ -235,7 +241,7 @@ export const userResolvers = {
             userName,
             email,
             phoneNumber,
-            dateOfBirth,
+            dateOfBirth: formattedDateOfBirth,
             password: hashedPassword,
             role: 'STUDENT',
             createdAt: new Date(),

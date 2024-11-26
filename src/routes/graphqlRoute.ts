@@ -2,7 +2,7 @@ import {
   getGraphQLParameters,
   processRequest,
   Request,
-  sendResult,
+  // sendResult,
   shouldRenderGraphiQL,
   renderGraphiQL,
 } from 'graphql-helix'
@@ -41,13 +41,6 @@ export function registerGraphQLRoute(server: FastifyInstance) {
         body: req.body,
       }
 
-      // if (shouldRenderGraphiQL(request)) {
-      //   const responseBody = renderGraphiQL({ endpoint: '/graphql' })
-      //   reply.header('Content-Type', 'text/html')
-      //   reply.status(200).send(responseBody)
-      //   return
-      // }
-
       if (shouldRenderGraphiQL(request)) {
         reply.header('Content-Type', 'text/html')
         reply.send(
@@ -76,10 +69,10 @@ export function registerGraphQLRoute(server: FastifyInstance) {
         reply.status(result.status)
         reply.serialize(result.payload)
         reply.send(result.payload)
-        console.log(reply)
+        // console.log(reply)
       }
-      sendResult(result, reply.raw)
-      console.log(result, reply.raw)
+      // sendResult(result, reply.raw)
+      // console.log(result, reply.raw)
     },
   })
 }

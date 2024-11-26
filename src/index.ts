@@ -30,6 +30,7 @@ const allowedOrigins = [
   'https://anydayessay.com',
   'https://anyday-essay-client.web.app',
   'http://localhost:3000',
+  'http://localhost:8080',
   'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
 ].filter(Boolean)
 
@@ -55,7 +56,7 @@ if (!app.hasDecorator('multipartErrors')) {
 app.addHook('onRequest', (req, reply, done) => {
   console.log(`[${req.method}] ${req.url}`)
   if (req.method === 'OPTIONS') {
-    console.log('Preflight Request:', req.headers.origin)
+    // console.log('Preflight Request:', req.headers.origin)
   }
   if (req.body) console.log('Body:', req.body)
   if (req.headers) console.log('Headers:', req.headers)
