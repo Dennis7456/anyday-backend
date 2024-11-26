@@ -98,6 +98,9 @@ exports.orderResolvers = {
                 // Fetch the order to verify ownership
                 const order = yield context.prisma.order.findUnique({
                     where: { id: orderId },
+                    include: {
+                        uploadedFiles: true,
+                    },
                 });
                 if (!order) {
                     throw new Error('Order not found');
@@ -119,13 +122,57 @@ exports.orderResolvers = {
                 throw new Error('Unauthorized access to order');
             }
         }),
-    },
-    Order: {
-        student: (parent, _, context) => {
-            return context.prisma.user.findUnique({ where: { id: parent.studentId } });
-        },
-        uploadedFiles: (parent, _, context) => {
-            return context.prisma.file.findMany({ where: { orderId: parent.id } });
+        deleteOrder: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { orderId }, context) {
+            if (!context.currentUser) {
+                throw new Error('Please login to continue');
+            }
+            try {
+                // Fetch the order to verify ownership
+                const order = yield context.prisma.order.findUnique({
+                    where: { id: orderId },
+                    include: {
+                        uploadedFiles: true, // Ensure uploadedFiles is fetched
+                    },
+                });
+                if (!order) {
+                    throw new Error('Order not found');
+                }
+                if (order.studentId !== context.currentUser.id) {
+                    throw new Error('Unauthorized access to order');
+                }
+                // Proceed with the deletion and include uploadedFiles
+                const deletedOrder = yield context.prisma.order.delete({
+                    where: { id: orderId },
+                    include: {
+                        uploadedFiles: true, // Include uploadedFiles in the deleted result
+                    },
+                });
+                return deletedOrder; // Return the deleted order details
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    console.error('Error deleting order:', error.message);
+                    // Rethrow specific errors
+                    if (error.message === 'Order not found' ||
+                        error.message === 'Unauthorized access to order') {
+                        throw error;
+                    }
+                    if (error.message.includes('Database error')) {
+                        throw new Error('Database error');
+                    }
+                }
+                throw new Error('An error occurred while deleting the order.');
+            }
+        }),
+        Order: {
+            student: (parent, _, context) => {
+                return context.prisma.user.findUnique({
+                    where: { id: parent.studentId },
+                });
+            },
+            uploadedFiles: (parent, _, context) => {
+                return context.prisma.file.findMany({ where: { orderId: parent.id } });
+            },
         },
     },
 };

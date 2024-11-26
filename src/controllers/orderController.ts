@@ -277,16 +277,15 @@ export const orderResolvers = {
         throw new Error('An error occurred while deleting the order.')
       }
     },
-
-    Order: {
-      student: (parent: Order, _: unknown, context: GraphQLContext) => {
-        return context.prisma.user.findUnique({
-          where: { id: parent.studentId },
-        })
-      },
-      uploadedFiles: (parent: Order, _: unknown, context: GraphQLContext) => {
-        return context.prisma.file.findMany({ where: { orderId: parent.id } })
-      },
+  },
+  Order: {
+    student: (parent: Order, _: unknown, context: GraphQLContext) => {
+      return context.prisma.user.findUnique({
+        where: { id: parent.studentId },
+      })
+    },
+    uploadedFiles: (parent: Order, _: unknown, context: GraphQLContext) => {
+      return context.prisma.file.findMany({ where: { orderId: parent.id } })
     },
   },
 }
