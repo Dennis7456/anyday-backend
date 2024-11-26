@@ -18,6 +18,7 @@ const fastify_1 = __importDefault(require("fastify"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("@fastify/cors"));
 const formbody_1 = __importDefault(require("@fastify/formbody"));
+// import FastifyMultipart from '@fastify/multipart';
 const indexRoute_1 = require("./routes/indexRoute");
 const graphqlRoute_1 = require("./routes/graphqlRoute");
 const getRedisDataRoute_1 = require("./routes/getRedisDataRoute");
@@ -28,6 +29,7 @@ const stripeWebHookHandlerRoute_1 = require("./routes/stripeWebHookHandlerRoute"
 const apolloClient_1 = require("./routes/client/apolloClient");
 const redisClient_1 = __importDefault(require("./services/redisClient"));
 const verifyEmailRoute_1 = require("./routes/verifyEmailRoute");
+// import fastifyMultipart from '@fastify/multipart';
 dotenv_1.default.config();
 // Initialize Fastify application
 exports.app = (0, fastify_1.default)({
