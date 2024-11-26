@@ -12,6 +12,7 @@ import { registerCreateStripePaymentSessionRoute } from './routes/createStripeSe
 import { registerStripeWebHookHandlerRoute } from './routes/stripeWebHookHandlerRoute'
 import { apolloClient } from './routes/client/apolloClient'
 import redisClient from './services/redisClient'
+import { registerVerifyEmailRoute } from './routes/verifyEmailRoute'
 
 dotenv.config()
 
@@ -99,6 +100,13 @@ const registerRoutes = () => {
   try {
     registerStripeWebHookHandlerRoute(app, apolloClient)
     console.log('Registered Stripe WebHook Handler route')
+  } catch (err) {
+    console.error('Error registering Stripe WebHook Handler route:', err)
+  }
+
+  try {
+    registerVerifyEmailRoute(app)
+    console.log('Registered Verify Email route')
   } catch (err) {
     console.error('Error registering Stripe WebHook Handler route:', err)
   }

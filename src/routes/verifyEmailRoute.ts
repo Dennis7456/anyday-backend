@@ -1,16 +1,78 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import { graphql } from 'graphql'
+import { schema } from '../schema'
+import { contextFactory } from '../context'
 
-export function registerIndexRoute(server: FastifyInstance) {
+interface VerifyEmailQuery {
+  token: string
+}
+
+interface VerifyEmailResponse {
+  verifyEmail: {
+    valid: boolean
+    message: string
+    redirectUrl: string
+    token: string
+  }
+}
+
+export function registerVerifyEmailRoute(server: FastifyInstance) {
   // Server Status Endpoint
   server.route({
     method: 'GET',
-    url: '/',
-    handler: async (req, resp) => {
+    url: '/verify-email',
+    handler: async (req: FastifyRequest, resp: FastifyReply) => {
+      const query = req.query as VerifyEmailQuery
+      const token = query.token
+
+      if (!token) {
+        resp.status(400).send({ error: 'Token is required' })
+        return
+      }
+
       try {
-        resp.status(200).send('Server is running!')
+        const result = await graphql({
+          schema,
+          source: `
+            mutation verifyEmail($token: String!) {
+              verifyEmail(token: $token) {
+                valid
+                message
+                redirectUrl
+                token
+              }
+            }
+          `,
+          variableValues: { token },
+          contextValue: await contextFactory(req),
+        })
+
+        if (result.errors) {
+          console.error('GraphQL Errors:', result.errors)
+          resp.status(400).send({ error: 'Verification failed' })
+          return
+        }
+
+        const data = result.data as VerifyEmailResponse | undefined
+
+        if (data?.verifyEmail) {
+          const { valid, message, redirectUrl, token } = data.verifyEmail
+
+          if (valid) {
+            resp.header(
+              'Set-Cookie',
+              `token=${token}; Path=/; HttpOnly; Secure;`
+            )
+            resp.redirect(redirectUrl || '/')
+          } else {
+            resp.status(400).send({ error: message || 'Verification failed' })
+          }
+        } else {
+          resp.status(400).send({ error: 'Invalid response structure' })
+        }
       } catch (error) {
-        console.error('Error:', error)
-        resp.status(500).send('Internal Server Error')
+        console.error('Verification Error:', error)
+        resp.status(500).send({ error: 'Internal Server Error' })
       }
     },
   })
