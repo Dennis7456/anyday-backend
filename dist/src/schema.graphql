@@ -291,4 +291,5 @@ type Mutation {
   createStudent(input: CreateStudentInput!): User!
   updateUser(id: ID!, input: UpdateUserInput!): User!
   deleteUser(id: ID!): String!
+  deleteOrder(id: ID!): Order!
 }

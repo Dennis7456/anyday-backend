@@ -164,15 +164,15 @@ exports.orderResolvers = {
                 throw new Error('An error occurred while deleting the order.');
             }
         }),
-        Order: {
-            student: (parent, _, context) => {
-                return context.prisma.user.findUnique({
-                    where: { id: parent.studentId },
-                });
-            },
-            uploadedFiles: (parent, _, context) => {
-                return context.prisma.file.findMany({ where: { orderId: parent.id } });
-            },
+    },
+    Order: {
+        student: (parent, _, context) => {
+            return context.prisma.user.findUnique({
+                where: { id: parent.studentId },
+            });
+        },
+        uploadedFiles: (parent, _, context) => {
+            return context.prisma.file.findMany({ where: { orderId: parent.id } });
         },
     },
 };
