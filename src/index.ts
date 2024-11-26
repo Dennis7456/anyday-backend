@@ -20,6 +20,8 @@ export const app: FastifyInstance = Fastify({
   logger: true,
 })
 
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL)
+
 // Enable CORS
 app.register(fastifyCors, {
   origin: (origin, cb) => {
@@ -31,6 +33,7 @@ app.register(fastifyCors, {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   credentials: true, // Allow cookies and authorization headers
 })
 
