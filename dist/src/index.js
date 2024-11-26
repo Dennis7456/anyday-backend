@@ -16,7 +16,6 @@ exports.app = void 0;
 require("graphql-import-node");
 const fastify_1 = __importDefault(require("fastify"));
 const dotenv_1 = __importDefault(require("dotenv"));
-// import fastifyCors from '@fastify/cors' // Import Fastify CORS plugin
 const cors_1 = __importDefault(require("@fastify/cors"));
 const indexRoute_1 = require("./routes/indexRoute");
 const graphqlRoute_1 = require("./routes/graphqlRoute");

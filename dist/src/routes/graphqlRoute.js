@@ -19,6 +19,7 @@ function registerGraphQLRoute(server) {
         method: ['POST', 'GET', 'OPTIONS'],
         url: '/graphql',
         handler: (req, reply) => __awaiter(this, void 0, void 0, function* () {
+            console.log('Request Body:', req.body);
             // Handle OPTIONS preflight requests for CORS
             if (req.method === 'OPTIONS') {
                 reply
