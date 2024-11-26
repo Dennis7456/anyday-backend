@@ -20,6 +20,7 @@ const config_1 = require("../config/config");
 const uuid_1 = require("uuid");
 const sendVerificationEmail_1 = require("../services/sendVerificationEmail");
 const redisClient_1 = __importDefault(require("../services/redisClient"));
+const client_1 = require("@prisma/client");
 exports.userResolvers = {
     Query: {
         users: (_, __, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -159,6 +160,33 @@ exports.userResolvers = {
             catch (error) {
                 console.error('Error creating student:', error);
                 throw new Error('An error occurred while creating the student.');
+            }
+        }),
+        updateUser: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { id, input }, context) {
+            try {
+                // Validate the role input
+                if (input.role && !Object.values(client_1.Role).includes(input.role)) {
+                    throw new Error('Invalid role value');
+                }
+                const updatedUser = yield context.prisma.user.update({
+                    where: { id },
+                    data: Object.assign(Object.assign({}, input), { role: input.role }),
+                });
+                return updatedUser;
+            }
+            catch (error) {
+                console.error('Error updating user:', error);
+                throw new Error('An error occurred while updating the user.');
+            }
+        }),
+        deleteUser: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { id }, context) {
+            try {
+                yield context.prisma.user.delete({ where: { id } });
+                return { message: 'User deleted successfully' };
+            }
+            catch (error) {
+                console.error('Error deleting user:', error);
+                throw new Error('An error occurred while deleting the user.');
             }
         }),
     },

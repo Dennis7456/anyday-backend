@@ -62,10 +62,8 @@ type User {
   profilePicture: String
   createdAt: DateTime!
   updatedAt: DateTime!
-
   emailNotifications: Boolean!
   inAppNotifications: Boolean!
-
   orders: [Order!]!
   notifications: [Notification!]!
   sentMessages: [Message!]!
@@ -195,6 +193,17 @@ input CreateUserInput {
   phoneNumber: String!
   dateOfBirth: String!
   password: String!
+  role: Role!
+}
+
+# Inputs
+input UpdateUserInput {
+  firstName: String!
+  lastName: String!
+  userName: String!
+  email: String!
+  phoneNumber: String!
+  dateOfBirth: String!
   role: Role!
 }
 
