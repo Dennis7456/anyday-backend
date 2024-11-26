@@ -23,7 +23,7 @@ export const app: FastifyInstance = Fastify({
 // Enable CORS
 app.register(fastifyCors, {
   origin: (origin, cb) => {
-    const allowedOrigins = ['https://anydayessay.com', 'http://localhost:3000']
+    const allowedOrigins = [process.env.FRONTEND_URL]
     if (!origin || allowedOrigins.includes(origin)) {
       cb(null, true) // Allow the request
     } else {

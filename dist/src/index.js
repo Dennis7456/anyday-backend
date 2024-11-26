@@ -16,6 +16,7 @@ exports.app = void 0;
 require("graphql-import-node");
 const fastify_1 = __importDefault(require("fastify"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const cors_1 = __importDefault(require("@fastify/cors")); // Import Fastify CORS plugin
 const indexRoute_1 = require("./routes/indexRoute");
 const graphqlRoute_1 = require("./routes/graphqlRoute");
 const getRedisDataRoute_1 = require("./routes/getRedisDataRoute");
@@ -29,6 +30,20 @@ dotenv_1.default.config();
 // Initialize Fastify application
 exports.app = (0, fastify_1.default)({
     logger: true,
+});
+// Enable CORS
+exports.app.register(cors_1.default, {
+    origin: (origin, cb) => {
+        const allowedOrigins = ['https://anydayessay.com', 'http://localhost:3000'];
+        if (!origin || allowedOrigins.includes(origin)) {
+            cb(null, true); // Allow the request
+        }
+        else {
+            cb(new Error('Not allowed by CORS'), false); // Block the request
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+    credentials: true, // Allow cookies and authorization headers
 });
 // Function to register routes with error handling
 const registerRoutes = () => {
