@@ -67,11 +67,20 @@ exports.app.addHook('onRequest', (req, reply, done) => {
 const routes = [
     { handler: indexRoute_1.registerIndexRoute, name: 'Index' },
     { handler: graphqlRoute_1.registerGraphQLRoute, name: 'GraphQL' },
-    { handler: (app) => (0, getRedisDataRoute_1.registerGetRedisDataRoute)(app, redisClient_1.default), name: 'Get Redis Data' },
+    {
+        handler: (app) => (0, getRedisDataRoute_1.registerGetRedisDataRoute)(app, redisClient_1.default),
+        name: 'Get Redis Data',
+    },
     { handler: uploadFilesRoute_1.registerUploadFilesRoute, name: 'Upload Files' },
     { handler: showFileRoute_1.registerListFilesRoute, name: 'List Files' },
-    { handler: createStripeSessionRoute_1.registerCreateStripePaymentSessionRoute, name: 'Create Stripe Payment Session' },
-    { handler: (app) => (0, stripeWebHookHandlerRoute_1.registerStripeWebHookHandlerRoute)(app, apolloClient_1.apolloClient), name: 'Stripe WebHook Handler' },
+    {
+        handler: createStripeSessionRoute_1.registerCreateStripePaymentSessionRoute,
+        name: 'Create Stripe Payment Session',
+    },
+    {
+        handler: (app) => (0, stripeWebHookHandlerRoute_1.registerStripeWebHookHandlerRoute)(app, apolloClient_1.apolloClient),
+        name: 'Stripe WebHook Handler',
+    },
     { handler: verifyEmailRoute_1.registerVerifyEmailRoute, name: 'Verify Email' },
 ];
 const registerRoutes = () => {
