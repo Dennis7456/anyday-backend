@@ -22,6 +22,7 @@ const mockPrisma = {
     create: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
   },
   user: {
     findUnique: jest.fn(),
@@ -444,6 +445,7 @@ describe('updateOrder Resolver', () => {
   });
 
   it('successfully updates an order when the user is authenticated and owns the order', async () => {
+    // Mock authenticated user context
     const contextWithUser: GraphQLContext = {
       prisma: mockPrisma as unknown as PrismaClient,
       currentUser: {
@@ -478,27 +480,41 @@ describe('updateOrder Resolver', () => {
       depositAmount: 30,
       status: 'Pending',
       studentId: 'authenticated-user-id', // Match the currentUser.id
-      uploadedFiles: [],
+      uploadedFiles: [
+        {
+          id: 'file-1',
+          orderId: '1',
+          name: 'example.pdf',
+          url: 'http://example.com/example.pdf',
+          size: 12345,
+          mimeType: 'application/pdf',
+        },
+      ],
+    };
+
+    const updatedOrder = {
+      ...existingOrder,
+      instructions: 'Updated instructions', // Updated field
     };
 
     // Mock findUnique to return the existing order
     mockPrisma.order.findUnique = jest.fn().mockResolvedValue(existingOrder);
 
     // Mock update to return the updated order
-    mockPrisma.order.update = jest.fn().mockResolvedValue({
-      ...existingOrder,
-      instructions: 'Updated instructions', // Update the instructions
-    });
+    mockPrisma.order.update = jest.fn().mockResolvedValue(updatedOrder);
 
     const result = await orderResolvers.Mutation.updateOrder(null, { orderId, data }, contextWithUser);
 
-    expect(result).toEqual({
-      ...existingOrder,
-      instructions: 'Updated instructions',
+    // Assertions
+    expect(result).toEqual(updatedOrder);
+
+    // Ensure `findUnique` was called with correct parameters
+    expect(mockPrisma.order.findUnique).toHaveBeenCalledWith({
+      where: { id: orderId },
+      include: { uploadedFiles: true },
     });
 
-    // Ensure that findUnique and update were called with the right parameters
-    expect(mockPrisma.order.findUnique).toHaveBeenCalledWith({ where: { id: orderId } });
+    // Ensure `update` was called with correct parameters
     expect(mockPrisma.order.update).toHaveBeenCalledWith({
       where: { id: orderId },
       data,
@@ -589,9 +605,12 @@ describe('updateOrder Resolver', () => {
     // Mock update to throw a database error
     mockPrisma.order.update = jest.fn().mockRejectedValue(new Error('Database error'));
 
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
+
     await expect(orderResolvers.Mutation.updateOrder(null, { orderId, data }, contextWithUser))
       .rejects
       .toThrow('Unauthorized access to order');
+    consoleErrorMock.mockRestore();
   });
 });
 
@@ -748,6 +767,262 @@ describe('createOrder Mutation', () => {
     );
   });
 });
+
+describe('deleteOrder Resolver', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('throws an error when trying to delete an order without authentication', async () => {
+    const contextWithoutUser: GraphQLContext = {
+      prisma: mockPrisma as unknown as PrismaClient,
+      currentUser: null,
+    };
+
+    const orderId = '1';
+
+    await expect(
+      orderResolvers.Mutation.deleteOrder(null, { orderId }, contextWithoutUser)
+    ).rejects.toThrow('Please login to continue');
+  });
+
+  it('successfully deletes an order when the user is authenticated and owns the order', async () => {
+    const contextWithUser: GraphQLContext = {
+      prisma: mockPrisma as unknown as PrismaClient,
+      currentUser: {
+        id: 'authenticated-user-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        userName: 'johndoe',
+        email: 'john.doe@example.com',
+        phoneNumber: '1234567890',
+        dateOfBirth: new Date('2000-01-01'),
+        password: 'password123',
+        role: 'STUDENT',
+        isVerified: true,
+        profilePicture: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        emailNotifications: true,
+        inAppNotifications: true,
+      },
+    };
+
+    const orderId = '1';
+
+    const existingOrder = {
+      id: orderId,
+      instructions: 'Some instructions',
+      paperType: 'Essay',
+      numberOfPages: 3,
+      dueDate: new Date(),
+      totalAmount: 90,
+      depositAmount: 30,
+      status: 'Pending',
+      studentId: 'authenticated-user-id',
+      uploadedFiles: [
+        {
+          id: 'file-1',
+          orderId: '1',
+          name: 'example.pdf',
+          url: 'http://example.com/example.pdf',
+          size: 12345,
+          mimeType: 'application/pdf',
+        },
+      ],
+    };
+
+    // Mock findUnique to return the existing order
+    mockPrisma.order.findUnique = jest.fn().mockResolvedValue(existingOrder);
+
+    // Mock delete to simulate successful deletion
+    mockPrisma.order.delete = jest.fn().mockResolvedValue(existingOrder);
+
+    const result = await orderResolvers.Mutation.deleteOrder(null, { orderId }, contextWithUser);
+
+    expect(result).toEqual(existingOrder);
+
+    // Ensure that findUnique was called with the correct parameters
+    expect(mockPrisma.order.findUnique).toHaveBeenCalledWith({
+      where: { id: orderId },
+      include: { uploadedFiles: true }, // Add the include to match the actual resolver
+    });
+
+    // Ensure that delete was called with the correct parameters
+    expect(mockPrisma.order.delete).toHaveBeenCalledWith({
+      where: { id: orderId },
+      include: { uploadedFiles: true },
+    });
+  });
+
+  it('throws an error when trying to delete an order that does not belong to the user', async () => {
+    const contextWithUser: GraphQLContext = {
+      prisma: mockPrisma as unknown as PrismaClient,
+      currentUser: {
+        id: 'authenticated-user-id', // Different from the studentId of the order
+        firstName: 'John',
+        lastName: 'Doe',
+        userName: 'johndoe',
+        email: 'john.doe@example.com',
+        phoneNumber: '1234567890',
+        dateOfBirth: new Date('2000-01-01'),
+        password: 'password123',
+        role: Role.STUDENT,
+        isVerified: true,
+        profilePicture: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        emailNotifications: true,
+        inAppNotifications: true,
+      },
+    };
+
+    const orderId = '1';
+
+    const unauthorizedOrder = {
+      id: orderId,
+      instructions: 'Unauthorized instructions',
+      paperType: 'Essay',
+      numberOfPages: 3,
+      dueDate: new Date(),
+      totalAmount: 90,
+      depositAmount: 30,
+      status: 'Pending',
+      studentId: 'other-user-id', // Different studentId from the currentUser
+      uploadedFiles: [],
+    };
+
+    // Mock `console.error` to suppress the error log
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
+
+    // Mock findUnique to return an order that belongs to a different user
+    mockPrisma.order.findUnique.mockResolvedValue(unauthorizedOrder);
+
+    await expect(
+      orderResolvers.Mutation.deleteOrder(null, { orderId }, contextWithUser)
+    ).rejects.toThrow('Unauthorized access to order');
+
+    // Ensure delete was not called
+    expect(mockPrisma.order.delete).not.toHaveBeenCalled();
+
+    // Restore the original `console.error` after the test
+    consoleErrorMock.mockRestore();
+  });
+
+  it('throws an error if the order does not exist', async () => {
+    const orderId = '1';
+    const contextWithUser: GraphQLContext = {
+      prisma: mockPrisma as unknown as PrismaClient,
+      currentUser: {
+        id: 'authenticated-user-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        userName: 'johndoe',
+        email: 'john.doe@example.com',
+        phoneNumber: '1234567890',
+        dateOfBirth: new Date('2000-01-01'),
+        password: 'password123',
+        role: Role.STUDENT,
+        isVerified: true,
+        profilePicture: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        emailNotifications: true,
+        inAppNotifications: true,
+      },
+    };
+
+    // Mock `console.error` to suppress the error log
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
+
+    mockPrisma.order.findUnique = jest.fn().mockResolvedValue(null);
+
+    await expect(
+      orderResolvers.Mutation.deleteOrder(null, { orderId }, contextWithUser)
+    ).rejects.toThrow('Order not found');
+
+    expect(mockPrisma.order.delete).not.toHaveBeenCalled();
+
+    // Restore the original `console.error` after the test
+    consoleErrorMock.mockRestore();
+  });
+
+  it('throws an error if the deletion fails due to a database issue', async () => {
+    const contextWithUser: GraphQLContext = {
+      prisma: mockPrisma as unknown as PrismaClient,
+      currentUser: {
+        id: 'authenticated-user-id',
+        firstName: 'John',
+        lastName: 'Doe',
+        userName: 'johndoe',
+        email: 'john.doe@example.com',
+        phoneNumber: '1234567890',
+        dateOfBirth: new Date('2000-01-01'),
+        password: 'password123',
+        role: 'STUDENT',
+        isVerified: true,
+        profilePicture: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        emailNotifications: true,
+        inAppNotifications: true,
+      },
+    };
+
+    const orderId = '1';
+
+    const existingOrder = {
+      id: orderId,
+      studentId: 'authenticated-user-id',
+      instructions: 'Current instructions',
+      paperType: 'Essay',
+      numberOfPages: 3,
+      dueDate: new Date(),
+      totalAmount: 90,
+      depositAmount: 30,
+      status: 'Pending',
+      submittedAt: null,
+      uploadedFiles: [
+        {
+          id: 'file-1',
+          orderId: '1',
+          name: 'example.pdf',
+          url: 'http://example.com/example.pdf',
+          size: 12345,
+          mimeType: 'application/pdf',
+        },
+      ],
+    };
+
+    // Mock findUnique to return a valid order
+    mockPrisma.order.findUnique = jest.fn().mockResolvedValue(existingOrder);
+
+    // Mock delete to throw a database error
+    mockPrisma.order.delete = jest.fn().mockRejectedValue(new Error('Database error'));
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
+
+    await expect(
+      orderResolvers.Mutation.deleteOrder(null, { orderId }, contextWithUser)
+    ).rejects.toThrow('Database error');
+
+    // Ensure findUnique was called
+    expect(mockPrisma.order.findUnique).toHaveBeenCalledWith({
+      where: { id: orderId },
+      include: { uploadedFiles: true }, // Ensure include is present
+    });
+
+    // Ensure delete was attempted with include
+    expect(mockPrisma.order.delete).toHaveBeenCalledWith({
+      where: { id: orderId },
+      include: { uploadedFiles: true }, // Ensure include is part of delete query
+    });
+
+    consoleErrorMock.mockRestore();
+  });
+
+});
+
+
 
 
 

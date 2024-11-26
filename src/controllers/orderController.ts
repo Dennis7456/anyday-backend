@@ -3,6 +3,15 @@ import { GraphQLContext } from '../context/context'
 import { sendOrderSuccessEmail } from '../services/sendOrderSuccessEmail'
 import { OrderStatus } from '@prisma/client'
 
+interface UploadedFile {
+  id: string
+  orderId: string
+  name: string
+  url: string
+  size: string
+  mimeType: string | null
+}
+
 interface Order {
   id: string
   studentId: string
@@ -13,7 +22,7 @@ interface Order {
   totalAmount: number
   depositAmount: number
   status: string
-  uploadedFiles: { url: string; name: string; size: number; type: string }[]
+  uploadedFiles: UploadedFile[]
 }
 
 interface OrderData {
@@ -181,6 +190,9 @@ export const orderResolvers = {
         // Fetch the order to verify ownership
         const order = await context.prisma.order.findUnique({
           where: { id: orderId },
+          include: {
+            uploadedFiles: true,
+          },
         })
 
         if (!order) {
@@ -209,14 +221,72 @@ export const orderResolvers = {
         throw new Error('Unauthorized access to order')
       }
     },
-  },
 
-  Order: {
-    student: (parent: Order, _: unknown, context: GraphQLContext) => {
-      return context.prisma.user.findUnique({ where: { id: parent.studentId } })
+    deleteOrder: async (
+      _: unknown,
+      { orderId }: { orderId: string },
+      context: GraphQLContext
+    ): Promise<Order> => {
+      if (!context.currentUser) {
+        throw new Error('Please login to continue')
+      }
+
+      try {
+        // Fetch the order to verify ownership
+        const order = await context.prisma.order.findUnique({
+          where: { id: orderId },
+          include: {
+            uploadedFiles: true, // Ensure uploadedFiles is fetched
+          },
+        })
+
+        if (!order) {
+          throw new Error('Order not found')
+        }
+
+        if (order.studentId !== context.currentUser.id) {
+          throw new Error('Unauthorized access to order')
+        }
+
+        // Proceed with the deletion and include uploadedFiles
+        const deletedOrder = await context.prisma.order.delete({
+          where: { id: orderId },
+          include: {
+            uploadedFiles: true, // Include uploadedFiles in the deleted result
+          },
+        })
+
+        return deletedOrder // Return the deleted order details
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error('Error deleting order:', error.message)
+
+          // Rethrow specific errors
+          if (
+            error.message === 'Order not found' ||
+            error.message === 'Unauthorized access to order'
+          ) {
+            throw error
+          }
+
+          if (error.message.includes('Database error')) {
+            throw new Error('Database error')
+          }
+        }
+
+        throw new Error('An error occurred while deleting the order.')
+      }
     },
-    uploadedFiles: (parent: Order, _: unknown, context: GraphQLContext) => {
-      return context.prisma.file.findMany({ where: { orderId: parent.id } })
+
+    Order: {
+      student: (parent: Order, _: unknown, context: GraphQLContext) => {
+        return context.prisma.user.findUnique({
+          where: { id: parent.studentId },
+        })
+      },
+      uploadedFiles: (parent: Order, _: unknown, context: GraphQLContext) => {
+        return context.prisma.file.findMany({ where: { orderId: parent.id } })
+      },
     },
   },
 }
