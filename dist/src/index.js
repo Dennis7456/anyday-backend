@@ -16,7 +16,8 @@ exports.app = void 0;
 require("graphql-import-node");
 const fastify_1 = __importDefault(require("fastify"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const cors_1 = __importDefault(require("@fastify/cors")); // Import Fastify CORS plugin
+// import fastifyCors from '@fastify/cors' // Import Fastify CORS plugin
+const cors_1 = __importDefault(require("@fastify/cors"));
 const indexRoute_1 = require("./routes/indexRoute");
 const graphqlRoute_1 = require("./routes/graphqlRoute");
 const getRedisDataRoute_1 = require("./routes/getRedisDataRoute");
@@ -33,19 +34,27 @@ exports.app = (0, fastify_1.default)({
 });
 console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
 // Enable CORS
+// app.register(fastifyCors, {
+//   origin: (origin, cb) => {
+//     origin: [process.env.BASE_URL || 'https://anydayessay.web.app'],
+//     methods: ['GET', 'POST', 'OPTIONS'],
+//       allowedHeaders:
+//   const allowedOrigins = [process.env.FRONTEND_URL]
+//   if (!origin || allowedOrigins.includes(origin)) {
+//     cb(null, true) // Allow the request
+//   } else {
+//     cb(new Error('Not allowed by CORS'), false) // Block the request
+//   }
+// },
+// methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+// allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+// credentials: true, // Allow cookies and authorization headers
+// })
 exports.app.register(cors_1.default, {
-    origin: (origin, cb) => {
-        const allowedOrigins = [process.env.FRONTEND_URL];
-        if (!origin || allowedOrigins.includes(origin)) {
-            cb(null, true); // Allow the request
-        }
-        else {
-            cb(new Error('Not allowed by CORS'), false); // Block the request
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-    credentials: true, // Allow cookies and authorization headers
+    origin: [process.env.BASE_URL || 'https://anydayessay.com'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 });
 // Function to register routes with error handling
 const registerRoutes = () => {
