@@ -31,6 +31,7 @@ dotenv_1.default.config();
 exports.app = (0, fastify_1.default)({
     logger: true,
 });
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
 // Enable CORS
 exports.app.register(cors_1.default, {
     origin: (origin, cb) => {
@@ -43,6 +44,7 @@ exports.app.register(cors_1.default, {
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
     credentials: true, // Allow cookies and authorization headers
 });
 // Function to register routes with error handling

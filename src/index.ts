@@ -2,7 +2,8 @@ import 'graphql-import-node'
 import Fastify, { FastifyInstance } from 'fastify'
 import dotenv from 'dotenv'
 import { AddressInfo } from 'net'
-import fastifyCors from '@fastify/cors' // Import Fastify CORS plugin
+// import fastifyCors from '@fastify/cors' // Import Fastify CORS plugin
+import cors from '@fastify/cors'
 import { registerIndexRoute } from './routes/indexRoute'
 import { registerGraphQLRoute } from './routes/graphqlRoute'
 import { registerGetRedisDataRoute } from './routes/getRedisDataRoute'
@@ -23,18 +24,28 @@ export const app: FastifyInstance = Fastify({
 console.log('FRONTEND_URL:', process.env.FRONTEND_URL)
 
 // Enable CORS
-app.register(fastifyCors, {
-  origin: (origin, cb) => {
-    const allowedOrigins = [process.env.FRONTEND_URL]
-    if (!origin || allowedOrigins.includes(origin)) {
-      cb(null, true) // Allow the request
-    } else {
-      cb(new Error('Not allowed by CORS'), false) // Block the request
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-  credentials: true, // Allow cookies and authorization headers
+// app.register(fastifyCors, {
+//   origin: (origin, cb) => {
+//     origin: [process.env.BASE_URL || 'https://anydayessay.web.app'],
+//     methods: ['GET', 'POST', 'OPTIONS'],
+//       allowedHeaders:
+//   const allowedOrigins = [process.env.FRONTEND_URL]
+//   if (!origin || allowedOrigins.includes(origin)) {
+//     cb(null, true) // Allow the request
+//   } else {
+//     cb(new Error('Not allowed by CORS'), false) // Block the request
+//   }
+// },
+// methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+// allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+// credentials: true, // Allow cookies and authorization headers
+// })
+
+app.register(cors, {
+  origin: [process.env.BASE_URL || 'https://anydayessay.com'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 })
 
 // Function to register routes with error handling
