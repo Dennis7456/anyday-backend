@@ -91,7 +91,7 @@ describe('Authentication', () => {
 
     mockPrismaFindUnique.mockResolvedValue({
       id: '1',
-      ...input,
+      email: loginInput.email,
       password: 'hashedPassword',
     });
 
@@ -99,14 +99,18 @@ describe('Authentication', () => {
     (jwt.sign as jest.Mock).mockReturnValue('mockedJwtToken');
 
     const loginMutation = gql`
-      mutation Login($email: String!, $password: String!) {
-        login(email: $email, password: $password) {
+      mutation login($input: LoginInput!) {
+        login(input: $input) {
           token
         }
       }
     `;
 
-    const result = await userResolvers.Mutation.login(null, { ...loginInput }, context);
+    const result = await userResolvers.Mutation.login(
+      null,
+      { input: loginInput },
+      context
+      );
 
     expect(compare).toHaveBeenCalledWith(loginInput.password, 'hashedPassword');
 
@@ -120,11 +124,11 @@ describe('Authentication', () => {
       token: 'mockedJwtToken',
       user: {
         id: '1',
-        firstName: 'John',
-        lastName: 'Doe',
+        // firstName: 'John',
+        // lastName: 'Doe',
         email: 'john.doe@example.com',
-        phoneNumber: '1234567890',
-        dateOfBirth: new Date('2000-01-01'),
+        // phoneNumber: '1234567890',
+        // dateOfBirth: new Date('2000-01-01'),
         password: 'hashedPassword',
       }
     });

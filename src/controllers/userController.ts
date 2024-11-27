@@ -9,6 +9,11 @@ import { Redis } from '@upstash/redis'
 import redisClient from '../services/redisClient'
 import { Role } from '@prisma/client'
 
+interface LoginInput {
+  email: string
+  password: string
+}
+
 interface User {
   id: string
   firstName: string
@@ -112,13 +117,15 @@ export const userResolvers = {
 
     login: async (
       _: unknown,
-      { email, password }: { email: string; password: string },
+      { input }: { input: LoginInput },
       context: GraphQLContext
     ) => {
+      const { email, password } = input
       const user = await context.prisma.user.findUnique({ where: { email } })
       if (!user) {
         throw new Error('User does not exist')
       }
+
       const isValidPassword = await bcrypt.compare(password, user.password)
       if (!isValidPassword) {
         throw new Error('Invalid password')
