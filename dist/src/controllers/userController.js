@@ -63,7 +63,8 @@ exports.userResolvers = {
                 };
             }
         }),
-        login: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { email, password }, context) {
+        login: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { input }, context) {
+            const { email, password } = input;
             const user = yield context.prisma.user.findUnique({ where: { email } });
             if (!user) {
                 throw new Error('User does not exist');
