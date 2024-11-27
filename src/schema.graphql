@@ -64,21 +64,21 @@ type User {
   updatedAt: DateTime!
   emailNotifications: Boolean!
   inAppNotifications: Boolean!
-  orders: [Order!]!
-  notifications: [Notification!]!
-  sentMessages: [Message!]!
-  receivedMessages: [Message!]!
-  qaReviews: [Review!]!
-  writtenReviews: [Review!]!
-  assignments: [Assignment!]!
-  chats: [Chat!]!
+  orders: [Order]
+  notifications: [Notification]
+  sentMessages: [Message]
+  receivedMessages: [Message]
+  qaReviews: [Review]
+  writtenReviews: [Review]
+  assignments: [Assignment]
+  chats: [Chat]
 }
 
 type Order {
   id: ID!
   studentId: String!
   instructions: String!
-  paperType: String!
+  paperType: PaperType!
   numberOfPages: Int!
   dueDate: DateTime!
   status: OrderStatus!
@@ -208,22 +208,23 @@ input UpdateUserInput {
 }
 
 input CreateOrderInput {
-  studentId: String!
   instructions: String!
   paperType: PaperType!
   numberOfPages: Int!
   dueDate: DateTime!
   depositAmount: Float!
+  uploadedFiles: [FileInput!]
 }
 
 input OrderUpdateInput {
   instructions: String
-  paperType: String
+  paperType: PaperType
   numberOfPages: Int
   dueDate: String
   totalAmount: Float
   depositAmount: Float
   status: OrderStatus
+  uploadedFiles: [FileUpdateInput!]
 }
 
 input RegisterAndCreateOrderInput {
@@ -252,6 +253,14 @@ input FileInput {
   url: String!
   name: String!
   size: String!
+  mimeType: String
+}
+
+input FileUpdateInput {
+  id: ID
+  url: String
+  name: String
+  size: String
   mimeType: String
 }
 
@@ -285,6 +294,31 @@ type AuthPayload {
   user: User
 }
 
+type CreateOrderResponse {
+  success: Boolean!
+  message: String
+  order: Order
+}
+
+enum PaperType {
+  ESSAY
+  ADMISSION_ESSAY
+  ANNOTATED_BIBLIOGRAPHY
+  ARGUMENTATIVE_ESSAY
+  ARTICLE_REVIEW
+  BOOK_MOVIE_REVIEW
+  BUSINESS_PLAN
+  PRESENTATION_SPEECH
+  RESEARCH_PROPOSAL
+  CASE_STUDY
+  CRITICAL_THINKING
+  COURSE_WORK
+  TERM_PAPER
+  THESIS_DISSERTATION_CHAPTER
+  CREATIVE_WRITING
+  OTHER
+}
+
 # Queries
 type Query {
   info: String!
@@ -313,7 +347,7 @@ type Query {
 type Mutation {
   createUser(input: CreateUserInput!): User!
   login(email: String!, password: String!): AuthPayload
-  createOrder(input: CreateOrderInput!): Order!
+  createOrder(input: CreateOrderInput!): CreateOrderResponse!
   updateOrder(orderId: ID!, data: OrderUpdateInput!): Order!
   registerAndCreateOrder(
     input: RegisterAndCreateOrderInput!

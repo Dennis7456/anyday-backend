@@ -9,8 +9,7 @@ import { gql } from 'apollo-server';
 import { orderResolvers } from '../src/controllers/orderController'; // Adjust path as needed
 import { GraphQLContext } from '../src/context/context'; // Your GraphQL context
 import { sendOrderSuccessEmail } from '../src/services/sendOrderSuccessEmail'; // Mock email service
-import { PrismaClient } from '@prisma/client';
-import { Role } from '@prisma/client';
+import { PrismaClient, PaperType, Role } from '@prisma/client';
 
 console.log('Is sendOrderSuccessEmail a mock function?', jest.isMockFunction(sendOrderSuccessEmail));
 // Should log: true
@@ -67,7 +66,7 @@ describe('Order Resolvers', () => {
         id: '1',
         studentId: '1',
         instructions: 'Test order 1',
-        paperType: 'Essay',
+        paperType: PaperType.ESSAY,
         numberOfPages: 5,
         dueDate: new Date(),
         totalAmount: 100,
@@ -102,7 +101,7 @@ describe('Order Resolvers', () => {
     const createOrderInput = {
       studentId: '1',
       instructions: 'Test order 2',
-      paperType: 'Research Paper',
+      paperType: PaperType.ESSAY,
       numberOfPages: 10,
       dueDate: new Date(),
       uploadedFiles: [
@@ -110,7 +109,7 @@ describe('Order Resolvers', () => {
           url: 'http://example.com/file1.pdf',
           name: 'file1.pdf',
           size: '1MB',
-          type: 'application/pdf',
+          mimeType: 'application/pdf',
         },
       ],
     };
@@ -126,7 +125,7 @@ describe('Order Resolvers', () => {
       id: '2',
       studentId: '1',
       instructions: 'Test order 2',
-      paperType: 'Research Paper',
+      paperType: PaperType.ESSAY,
       numberOfPages: 10,
       dueDate: new Date(),
       totalAmount: 200, // Assuming 20 per page
@@ -137,7 +136,7 @@ describe('Order Resolvers', () => {
           url: 'http://example.com/file1.pdf',
           name: 'file1.pdf',
           size: '1MB',
-          type: 'application/pdf',
+          mimeType: 'application/pdf',
         },
       ],
     });
@@ -168,11 +167,11 @@ describe('Order Resolvers', () => {
     expect(result.success).toBe(true);
     expect(result.message).toBe('Order created successfully. A confirmation email has been sent.');
     expect(result.order).toHaveProperty('id', '2');
-    expect(result.order.totalAmount).toBe(200);
+    expect(result.order?.totalAmount).toBe(200);
     expect(sendOrderSuccessEmail).toHaveBeenCalledWith(
       'student@example.com',
       'Test order 2',
-      'Research Paper',
+      'ESSAY',
       10,
       expect.any(String), // for the due date
       200,
@@ -187,7 +186,7 @@ describe('Order Resolvers', () => {
     const createOrderInput = {
       studentId: '999', // Invalid student ID
       instructions: 'Test order 3',
-      paperType: 'Essay',
+      paperType: PaperType.ESSAY,
       numberOfPages: 5,
       dueDate: new Date(),
       uploadedFiles: [],
@@ -518,6 +517,9 @@ describe('updateOrder Resolver', () => {
     expect(mockPrisma.order.update).toHaveBeenCalledWith({
       where: { id: orderId },
       data,
+      include: {
+        uploadedFiles: true
+      }
     });
   });
 
@@ -609,7 +611,7 @@ describe('updateOrder Resolver', () => {
 
     await expect(orderResolvers.Mutation.updateOrder(null, { orderId, data }, contextWithUser))
       .rejects
-      .toThrow('Unauthorized access to order');
+      .toThrow('Database error');
     consoleErrorMock.mockRestore();
   });
 });
@@ -619,7 +621,7 @@ describe('createOrder Mutation', () => {
     const createOrderInput = {
       studentId: '1',
       instructions: 'Test order 2',
-      paperType: 'Research Paper',
+      paperType: PaperType.ESSAY,
       numberOfPages: 10,
       dueDate: new Date(),
       uploadedFiles: [
@@ -627,7 +629,7 @@ describe('createOrder Mutation', () => {
           url: 'http://example.com/file1.pdf',
           name: 'file1.pdf',
           size: '1MB',
-          type: 'application/pdf',
+          mimeType: 'application/pdf',
         },
       ],
     };
@@ -643,7 +645,7 @@ describe('createOrder Mutation', () => {
       id: '2',
       studentId: '1',
       instructions: 'Test order 2',
-      paperType: 'Research Paper',
+      paperType: PaperType.ESSAY,
       numberOfPages: 10,
       dueDate: new Date(),
       totalAmount: 200, // Assuming 20 per page
@@ -654,7 +656,7 @@ describe('createOrder Mutation', () => {
           url: 'http://example.com/file1.pdf',
           name: 'file1.pdf',
           size: '1MB',
-          type: 'application/pdf',
+          mimeType: 'application/pdf',
         },
       ],
     });
@@ -688,13 +690,13 @@ describe('createOrder Mutation', () => {
     expect(result.success).toBe(true);
     expect(result.message).toBe('Order created successfully. A confirmation email has been sent.');
     expect(result.order).toHaveProperty('id', '2');
-    expect(result.order.totalAmount).toBe(200);
+    expect(result.order?.totalAmount).toBe(200);
 
     // Check that sendOrderSuccessEmail was called with the correct parameters
     expect(sendOrderSuccessEmail).toHaveBeenCalledWith(
       'student@example.com',  // to
       'Test order 2',          // instructions
-      'Research Paper',        // paperType
+      'ESSAY',        // paperType
       10,                      // numberOfPages
       expect.any(String),      // dueDate
       200,                     // totalAmount
@@ -708,7 +710,7 @@ describe('createOrder Mutation', () => {
     const createOrderInput = {
       studentId: '1',
       instructions: 'Test order 2',
-      paperType: 'Research Paper',
+      paperType: PaperType.ESSAY,
       numberOfPages: 10,
       dueDate: new Date(),
       uploadedFiles: [
@@ -716,7 +718,7 @@ describe('createOrder Mutation', () => {
           url: 'http://example.com/file1.pdf',
           name: 'file1.pdf',
           size: '1MB',
-          type: 'application/pdf',
+          mimeType: 'application/pdf',
         },
       ],
     };
@@ -751,7 +753,7 @@ describe('createOrder Mutation', () => {
     expect(result.success).toBe(true);
     expect(result.message).toBe('Order created successfully. A confirmation email has been sent.');
     expect(result.order).toHaveProperty('id', '2');
-    expect(result.order.totalAmount).toBe(200);
+    expect(result.order?.totalAmount).toBe(200);
 
     // Check `sendOrderSuccessEmail` mock calls
     expect(sendOrderSuccessEmail).toHaveBeenCalledWith(

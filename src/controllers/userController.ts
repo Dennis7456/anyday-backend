@@ -296,7 +296,75 @@ export const userResolvers = {
   },
   User: {
     orders: (parent: User, _: unknown, context: GraphQLContext) => {
-      return context.prisma.order.findMany({ where: { studentId: parent.id } })
+      const orders = context.prisma.order.findMany({
+        where: { studentId: parent.id },
+      })
+      return orders || []
+    },
+    notifications: async (
+      parent: User,
+      _: unknown,
+      context: GraphQLContext
+    ) => {
+      const notifications = await context.prisma.notification.findMany({
+        where: { recipientId: parent.id },
+      })
+      return notifications || []
+    },
+    sentMessages: async (parent: User, _: unknown, context: GraphQLContext) => {
+      const notifications = await context.prisma.message.findMany({
+        where: { senderId: parent.id },
+      })
+      return notifications || []
+    },
+    // Resolver for receivedMessages
+    receivedMessages: async (
+      parent: User,
+      _: unknown,
+      context: GraphQLContext
+    ) => {
+      const messages = await context.prisma.message.findMany({
+        where: { recipientId: parent.id }, // Filter messages where the user is the recipient
+      })
+      return messages || []
+    },
+    // Resolver for qaReviews
+    qaReviews: async (parent: User, _: unknown, context: GraphQLContext) => {
+      const reviews = await context.prisma.review.findMany({
+        where: { qaId: parent.id }, // Filter reviews where the user is the QA
+      })
+      return reviews || []
+    },
+    // Resolver for writtenReviews
+    writtenReviews: async (
+      parent: User,
+      _: unknown,
+      context: GraphQLContext
+    ) => {
+      const reviews = await context.prisma.review.findMany({
+        where: { writerId: parent.id }, // Filter reviews where the user is the writer
+      })
+      return reviews || []
+    },
+
+    // Resolver for assignments
+    assignments: async (parent: User, _: unknown, context: GraphQLContext) => {
+      const assignments = await context.prisma.assignment.findMany({
+        where: { writerId: parent.id }, // Filter assignments where the user is the writer
+      })
+      return assignments || []
+    },
+
+    // Resolver for chats
+    chats: async (parent: User, _: unknown, context: GraphQLContext) => {
+      const chats = await context.prisma.chat.findMany({
+        where: {
+          participants: {
+            some: { id: parent.id }, // Filter chats where the user is a participant
+          },
+        },
+      })
+      return chats || []
     },
   },
 }

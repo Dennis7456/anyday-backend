@@ -42,7 +42,7 @@ model Order {
   id            String       @id @default(uuid())
   studentId     String
   instructions  String
-  paperType     String
+  paperType     PaperType
   numberOfPages Int
   dueDate       DateTime
   status        OrderStatus
@@ -157,12 +157,6 @@ model Notification {
   @@map("notifications")
 }
 
-model playing_with_neon {
-  id    Int    @id @default(autoincrement())
-  name  String
-  value Float? @db.Real
-}
-
 enum ReviewStatus {
   PENDING
   VERIFIED
@@ -190,9 +184,21 @@ enum NotificationType {
 
 enum PaperType {
   ESSAY
-  RESEARCH_PAPER
-  THESIS
-  DISSERTATION
+  ADMISSION_ESSAY
+  ANNOTATED_BIBLIOGRAPHY
+  ARGUMENTATIVE_ESSAY
+  ARTICLE_REVIEW
+  BOOK_MOVIE_REVIEW
+  BUSINESS_PLAN
+  PRESENTATION_SPEECH
+  RESEARCH_PROPOSAL
+  CASE_STUDY
+  CRITICAL_THINKING
+  COURSE_WORK
+  TERM_PAPER
+  THESIS_DISSERTATION_CHAPTER
+  CREATIVE_WRITING
+  OTHER
 }
 
 enum OrderStatus {
