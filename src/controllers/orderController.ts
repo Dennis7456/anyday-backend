@@ -54,6 +54,7 @@ interface Order {
 // }
 
 export interface CreateOrderInput {
+  studentId: string
   instructions: string
   paperType: PaperType
   numberOfPages: number
@@ -123,25 +124,31 @@ export const orderResolvers = {
       { input }: { input: CreateOrderInput },
       context: GraphQLContext
     ) => {
-      const { instructions, paperType, numberOfPages, dueDate, uploadedFiles } =
-        input
+      const {
+        studentId,
+        instructions,
+        paperType,
+        numberOfPages,
+        dueDate,
+        uploadedFiles,
+      } = input
 
       // Check if the user is logged in
-      if (!context.currentUser) {
-        throw new Error('Please login to continue')
-      }
+      // if (!context.currentUser) {
+      //   throw new Error('Please login to continue')
+      // }
 
       // Validate paperType
       if (!Object.values(PaperType).includes(paperType)) {
         throw new Error(`Invalid paperType: ${paperType}`)
       }
 
-      const currentUser = context.currentUser.id
+      // const currentUser = context.currentUser.id
 
       try {
         // Check if the student exists
         const studentExists = await context.prisma.user.findUnique({
-          where: { id: currentUser },
+          where: { id: studentId },
         })
 
         if (!studentExists) {
@@ -161,7 +168,7 @@ export const orderResolvers = {
         // Create the order
         const order = await context.prisma.order.create({
           data: {
-            studentId: currentUser, // Link the order to the student
+            studentId: studentId, // Link the order to the student
             instructions,
             paperType: paperType as PaperType,
             numberOfPages,

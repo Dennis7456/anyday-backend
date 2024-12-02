@@ -344,6 +344,8 @@ describe('Order Resolvers', () => {
       },
     ];
 
+    const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation(() => { });
+
     const contextWithUser: GraphQLContext = {
       prisma: {
         order: {
@@ -356,6 +358,7 @@ describe('Order Resolvers', () => {
     await expect(orderResolvers.Query.getOrders(null, {}, contextWithUser))
       .rejects
       .toThrow('Unauthorized access to orders');
+    consoleErrorMock.mockRestore();
   });
 
   it('returns orders when the user is authenticated and owns the orders', async () => {
@@ -565,10 +568,12 @@ describe('updateOrder Resolver', () => {
 
     mockPrisma.order.findUnique = jest.fn().mockResolvedValue(unauthorizedOrder);
     mockPrisma.order.update = jest.fn();
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { })
 
     await expect(orderResolvers.Mutation.updateOrder(null, { orderId, data }, contextWithUser))
       .rejects
       .toThrow('Unauthorized access to order');
+    consoleErrorSpy.mockRestore();
   });
 
   it('throws an error if the update fails due to database issue', async () => {

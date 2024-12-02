@@ -36,6 +36,8 @@ export const sendVerificationEmail = async (
       },
     ],
   }
+  console.log('Verification Link', verificationLink)
+  console.log('Data: ', data)
 
   try {
     const response = await mailjet

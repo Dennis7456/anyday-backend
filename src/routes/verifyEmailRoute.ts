@@ -31,6 +31,7 @@ export function registerVerifyEmailRoute(server: FastifyInstance) {
       }
 
       try {
+        // Execute GraphQL mutation directly
         const result = await graphql({
           schema,
           source: `
@@ -53,25 +54,25 @@ export function registerVerifyEmailRoute(server: FastifyInstance) {
           return
         }
 
-        const data = result.data as VerifyEmailResponse | undefined
+        // Safe type assertion and handling
+        const data = result.data as unknown
 
-        if (data?.verifyEmail) {
-          const { valid, message, redirectUrl, token } = data.verifyEmail
-
+        if (data && typeof data === 'object' && 'verifyEmail' in data) {
+          const { valid, message, redirectUrl, token } = (
+            data as VerifyEmailResponse
+          ).verifyEmail
           if (valid) {
-            resp.header(
-              'Set-Cookie',
-              `token=${token}; Path=/; HttpOnly; Secure;`
-            )
+            // Return a JSON response with the redirect URL
+            resp.header('Set-Cookie', `token=${token}; Path=/;`)
             resp.redirect(redirectUrl || '/')
           } else {
-            resp.status(400).send({ error: message || 'Verification failed' })
+            resp.status(400).send(message || 'Verification failed')
           }
         } else {
-          resp.status(400).send({ error: 'Invalid response structure' })
+          resp.status(400).send('Invalid response structure')
         }
       } catch (error) {
-        console.error('Verification Error:', error)
+        console.error('Verification Error', error)
         resp.status(500).send({ error: 'Internal Server Error' })
       }
     },

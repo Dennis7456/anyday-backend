@@ -100,7 +100,7 @@ describe('completeRegistration', () => {
     redisMock.get.mockRejectedValueOnce(new Error('Redis error'));
 
     // Suppress console.error for this test
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
     // Call the resolver function and expect it to throw
     await expect(
@@ -112,7 +112,7 @@ describe('completeRegistration', () => {
     expect(redisMock.del).not.toHaveBeenCalled();
 
     // Restore console.error
-  consoleErrorSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
-  
+
 });

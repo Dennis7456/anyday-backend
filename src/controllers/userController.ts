@@ -2,12 +2,16 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { hash } from 'bcryptjs'
 import { GraphQLContext } from '../context/context'
-import { APP_SECRET, REGISTER_EXPIRATION, baseUrl } from '../config/config'
+import { APP_SECRET, REGISTER_EXPIRATION } from '../config/config'
 import { v4 as uuidv4 } from 'uuid'
 import { sendVerificationEmail } from '../services/sendVerificationEmail'
 import { Redis } from '@upstash/redis'
 import redisClient from '../services/redisClient'
 import { Role } from '@prisma/client'
+import dotenv from 'dotenv'
+
+dotenv.config()
+const frontEndUrl = process.env.FRONTEND_URL
 
 interface LoginInput {
   email: string
@@ -32,7 +36,7 @@ interface RegisterAndCreateOrderInput {
   dueDate: Date
 }
 
-interface CreateStudentInput {
+export interface CreateStudentInput {
   firstName: string
   lastName: string
   email: string
@@ -47,7 +51,7 @@ interface UpdateUserInput {
   userName: string
   email: string
   phoneNumber: string
-  dateOfBirth: string
+  dateOfBirth: Date
   role: Role
 }
 
@@ -85,13 +89,20 @@ export const userResolvers = {
         const verificationToken = uuidv4()
 
         // Store registration data in Redis with an expiration time
+        console.log('Data being stored in Redis:', {
+          email: input.email,
+          paperType: input.paperType,
+          numberOfPages: input.numberOfPages,
+          dueDate: input.dueDate,
+        })
+
         await redisClient.set(
           verificationToken,
           JSON.stringify({
             email: input.email,
             paperType: input.paperType,
             numberOfPages: input.numberOfPages,
-            dueDate: input.dueDate,
+            dueDate: new Date(input.dueDate).toISOString(),
           }),
           { ex: REGISTER_EXPIRATION }
         )
@@ -162,7 +173,7 @@ export const userResolvers = {
       return {
         valid: true,
         message: 'Email verified. Please complete your registration.',
-        redirectUrl: `${baseUrl}/complete-registration`,
+        redirectUrl: `${frontEndUrl}/complete-registration`,
         token: token,
       }
     },
@@ -183,6 +194,10 @@ export const userResolvers = {
         const { email, paperType, numberOfPages, dueDate } = JSON.parse(
           cachedData as string
         )
+        const parsedDueDate = new Date(dueDate)
+        if (isNaN(parsedDueDate.getTime())) {
+          throw new Error('Invalid date format for dueDate')
+        }
 
         console.log('Verified data:', {
           email,
@@ -191,7 +206,6 @@ export const userResolvers = {
           dueDate,
         })
 
-        // Delete token after successful verification
         await redisClient.del(token)
 
         return {
@@ -212,7 +226,7 @@ export const userResolvers = {
       const { firstName, lastName, email, phoneNumber, dateOfBirth, password } =
         input
 
-      // Ensure input validation includes password requirements
+      // Validate required fields
       if (
         !firstName ||
         !lastName ||
@@ -228,18 +242,16 @@ export const userResolvers = {
         throw new Error('Password must be at least 8 characters long.')
       }
 
-      const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(
-        Math.random() * 10000
-      )}`
+      const formattedDateOfBirth = new Date(dateOfBirth)
+      if (isNaN(formattedDateOfBirth.getTime())) {
+        throw new Error('Invalid date format for dateOfBirth')
+      }
 
       try {
         const hashedPassword = await hash(password, 10)
-        // Ensure dateOfBirth is a valid Date object
-        const formattedDateOfBirth = new Date(dateOfBirth)
-
-        if (isNaN(formattedDateOfBirth.getTime())) {
-          throw new Error('Invalid date format for dateOfBirth')
-        }
+        const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(
+          Math.random() * 10000
+        )}`
 
         const student = await context.prisma.user.create({
           data: {

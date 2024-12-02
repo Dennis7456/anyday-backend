@@ -8,6 +8,7 @@ jest.mock('@upstash/redis', () => {
   };
 });
 
+import { frontEndUrl } from '../src/config/config';
 import { userResolvers } from '../src/controllers/userController';
 import { Redis } from '@upstash/redis';
 
@@ -37,7 +38,7 @@ describe('verifyEmail', () => {
 
     expect(result.valid).toBe(true);
     expect(result.message).toBe('Email verified. Please complete your registration.');
-    expect(result.redirectUrl).toBe(`${process.env.BASE_URL}/complete-registration`);
+    expect(result.redirectUrl).toBe(`${frontEndUrl}/complete-registration`);
     expect(result.token).toBe(validToken);
 
     // Ensure Redis was called with the correct token
