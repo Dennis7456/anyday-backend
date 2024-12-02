@@ -213,6 +213,7 @@ input UpdateUserInput {
 }
 
 input CreateOrderInput {
+  studentId: ID!
   instructions: String!
   paperType: PaperType!
   numberOfPages: Int!
@@ -255,6 +256,7 @@ input UploadFilesInput {
 }
 
 input FileInput {
+  id: ID!
   url: String!
   name: String!
   size: String!

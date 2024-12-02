@@ -21,6 +21,9 @@ const uuid_1 = require("uuid");
 const sendVerificationEmail_1 = require("../services/sendVerificationEmail");
 const redisClient_1 = __importDefault(require("../services/redisClient"));
 const client_1 = require("@prisma/client");
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+const frontEndUrl = process.env.FRONTEND_URL;
 exports.userResolvers = {
     Query: {
         users: (_, __, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -41,11 +44,17 @@ exports.userResolvers = {
             try {
                 const verificationToken = (0, uuid_1.v4)();
                 // Store registration data in Redis with an expiration time
-                yield redisClient_1.default.set(verificationToken, JSON.stringify({
+                console.log('Data being stored in Redis:', {
                     email: input.email,
                     paperType: input.paperType,
                     numberOfPages: input.numberOfPages,
                     dueDate: input.dueDate,
+                });
+                yield redisClient_1.default.set(verificationToken, JSON.stringify({
+                    email: input.email,
+                    paperType: input.paperType,
+                    numberOfPages: input.numberOfPages,
+                    dueDate: new Date(input.dueDate).toISOString(),
                 }), { ex: config_1.REGISTER_EXPIRATION });
                 yield (0, sendVerificationEmail_1.sendVerificationEmail)(input.email, verificationToken);
                 return {
@@ -93,7 +102,7 @@ exports.userResolvers = {
             return {
                 valid: true,
                 message: 'Email verified. Please complete your registration.',
-                redirectUrl: `${config_1.baseUrl}/complete-registration`,
+                redirectUrl: `${frontEndUrl}/complete-registration`,
                 token: token,
             };
         }),
@@ -107,13 +116,16 @@ exports.userResolvers = {
                     };
                 }
                 const { email, paperType, numberOfPages, dueDate } = JSON.parse(cachedData);
+                const parsedDueDate = new Date(dueDate);
+                if (isNaN(parsedDueDate.getTime())) {
+                    throw new Error('Invalid date format for dueDate');
+                }
                 console.log('Verified data:', {
                     email,
                     paperType,
                     numberOfPages,
                     dueDate,
                 });
-                // Delete token after successful verification
                 yield redisClient.del(token);
                 return {
                     valid: true,
@@ -127,7 +139,7 @@ exports.userResolvers = {
         }),
         createStudent: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { input }, context) {
             const { firstName, lastName, email, phoneNumber, dateOfBirth, password } = input;
-            // Ensure input validation includes password requirements
+            // Validate required fields
             if (!firstName ||
                 !lastName ||
                 !email ||
@@ -139,14 +151,13 @@ exports.userResolvers = {
             if (password.length < 8) {
                 throw new Error('Password must be at least 8 characters long.');
             }
-            const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(Math.random() * 10000)}`;
+            const formattedDateOfBirth = new Date(dateOfBirth);
+            if (isNaN(formattedDateOfBirth.getTime())) {
+                throw new Error('Invalid date format for dateOfBirth');
+            }
             try {
                 const hashedPassword = yield (0, bcryptjs_2.hash)(password, 10);
-                // Ensure dateOfBirth is a valid Date object
-                const formattedDateOfBirth = new Date(dateOfBirth);
-                if (isNaN(formattedDateOfBirth.getTime())) {
-                    throw new Error('Invalid date format for dateOfBirth');
-                }
+                const userName = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(Math.random() * 10000)}`;
                 const student = yield context.prisma.user.create({
                     data: {
                         firstName,

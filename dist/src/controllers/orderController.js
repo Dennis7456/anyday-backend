@@ -49,20 +49,20 @@ exports.orderResolvers = {
     },
     Mutation: {
         createOrder: (_1, _a, context_1) => __awaiter(void 0, [_1, _a, context_1], void 0, function* (_, { input }, context) {
-            const { instructions, paperType, numberOfPages, dueDate, uploadedFiles } = input;
+            const { studentId, instructions, paperType, numberOfPages, dueDate, uploadedFiles, } = input;
             // Check if the user is logged in
-            if (!context.currentUser) {
-                throw new Error('Please login to continue');
-            }
+            // if (!context.currentUser) {
+            //   throw new Error('Please login to continue')
+            // }
             // Validate paperType
             if (!Object.values(client_1.PaperType).includes(paperType)) {
                 throw new Error(`Invalid paperType: ${paperType}`);
             }
-            const currentUser = context.currentUser.id;
+            // const currentUser = context.currentUser.id
             try {
                 // Check if the student exists
                 const studentExists = yield context.prisma.user.findUnique({
-                    where: { id: currentUser },
+                    where: { id: studentId },
                 });
                 if (!studentExists) {
                     return {
@@ -78,7 +78,7 @@ exports.orderResolvers = {
                 // Create the order
                 const order = yield context.prisma.order.create({
                     data: {
-                        studentId: currentUser, // Link the order to the student
+                        studentId: studentId, // Link the order to the student
                         instructions,
                         paperType: paperType,
                         numberOfPages,

@@ -41,6 +41,8 @@ const sendVerificationEmail = (to, verificationToken) => __awaiter(void 0, void 
             },
         ],
     };
+    console.log('Verification Link', verificationLink);
+    console.log('Data: ', data);
     try {
         const response = yield mailjet
             .post('send', { version: 'v3.1' })

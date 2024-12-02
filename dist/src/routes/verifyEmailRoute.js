@@ -26,6 +26,7 @@ function registerVerifyEmailRoute(server) {
                 return;
             }
             try {
+                // Execute GraphQL mutation directly
                 const result = yield (0, graphql_1.graphql)({
                     schema: schema_1.schema,
                     source: `
@@ -46,23 +47,25 @@ function registerVerifyEmailRoute(server) {
                     resp.status(400).send({ error: 'Verification failed' });
                     return;
                 }
+                // Safe type assertion and handling
                 const data = result.data;
-                if (data === null || data === void 0 ? void 0 : data.verifyEmail) {
+                if (data && typeof data === 'object' && 'verifyEmail' in data) {
                     const { valid, message, redirectUrl, token } = data.verifyEmail;
                     if (valid) {
-                        resp.header('Set-Cookie', `token=${token}; Path=/; HttpOnly; Secure;`);
+                        // Return a JSON response with the redirect URL
+                        resp.header('Set-Cookie', `token=${token}; Path=/;`);
                         resp.redirect(redirectUrl || '/');
                     }
                     else {
-                        resp.status(400).send({ error: message || 'Verification failed' });
+                        resp.status(400).send(message || 'Verification failed');
                     }
                 }
                 else {
-                    resp.status(400).send({ error: 'Invalid response structure' });
+                    resp.status(400).send('Invalid response structure');
                 }
             }
             catch (error) {
-                console.error('Verification Error:', error);
+                console.error('Verification Error', error);
                 resp.status(500).send({ error: 'Internal Server Error' });
             }
         }),

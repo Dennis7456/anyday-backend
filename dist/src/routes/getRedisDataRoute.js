@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerGetRedisDataRoute = registerGetRedisDataRoute;
+// import redisClient from '../services/redisClient'
 function registerGetRedisDataRoute(server, redis) {
     server.route({
         method: 'POST',
@@ -25,7 +26,7 @@ function registerGetRedisDataRoute(server, redis) {
             try {
                 const userData = yield redis.get(token);
                 if (userData) {
-                    reply.send(JSON.parse(userData));
+                    reply.send(userData);
                 }
                 else {
                     reply.status(404).send('User data not found');
