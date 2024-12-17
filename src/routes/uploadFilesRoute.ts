@@ -16,9 +16,7 @@ const pump = promisify(pipeline)
 
 declare module 'fastify' {
   interface FastifyInstance {
-    uploadFile(
-      parts: AsyncIterable<any>
-    ): Promise<{
+    uploadFile(parts: AsyncIterable<any>): Promise<{
       message: string
       uploadedFiles: Array<{
         id: string
@@ -58,7 +56,7 @@ export async function registerUploadFilesRoute(app: FastifyInstance) {
       '.doc',
       '.docx',
       '.ppt',
-      '.xls',
+      '.xlsx',
     ]
     const uploadedFiles: Array<{
       id: string

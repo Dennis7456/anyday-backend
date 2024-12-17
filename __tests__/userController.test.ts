@@ -395,33 +395,33 @@ describe('deleteUser', () => {
     },
   };
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  // afterEach(() => {
+  //   jest.clearAllMocks();
+  // });
 
-  it('should successfully delete a user', async () => {
-    const id = 'mock-user-id';
+  // it('should successfully delete a user', async () => {
+  //   const id = 'mock-user-id';
 
-    mockDelete.mockResolvedValue({});
+  //   mockDelete.mockResolvedValue({});
 
-    const result = await userResolvers.Mutation.deleteUser(null, { id }, mockContext);
+  //   const result = await userResolvers.Mutation.deleteUser(null, { id }, mockContext);
 
-    expect(result).toEqual({ message: 'User deleted successfully' });
-    expect(mockContext.prisma.user.delete).toHaveBeenCalledWith({ where: { id } });
-  });
+  //   expect(result).toEqual({ message: 'User deleted successfully' });
+  //   expect(mockContext.prisma.user.delete).toHaveBeenCalledWith({ where: { id } });
+  // });
 
-  it('should handle errors when deleting a user', async () => {
-    const id = 'mock-user-id';
+  // it('should handle errors when deleting a user', async () => {
+  //   const id = 'mock-user-id';
 
-    mockDelete.mockRejectedValue(new Error('Delete error'));
+  //   mockDelete.mockRejectedValue(new Error('Delete error'));
 
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { })
+  //   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { })
 
-    await expect(userResolvers.Mutation.deleteUser(null, { id }, mockContext))
-      .rejects.toThrow('An error occurred while deleting the user.');
+  //   await expect(userResolvers.Mutation.deleteUser(null, { id }, mockContext))
+  //     .rejects.toThrow('An error occurred while deleting the user.');
 
-    expect(mockContext.prisma.user.delete).toHaveBeenCalledWith({ where: { id } });
+  //   expect(mockContext.prisma.user.delete).toHaveBeenCalledWith({ where: { id } });
 
-    consoleErrorSpy.mockRestore();
-  });
+  //   consoleErrorSpy.mockRestore();
+  // });
 });

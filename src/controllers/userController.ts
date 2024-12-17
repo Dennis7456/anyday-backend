@@ -299,19 +299,33 @@ export const userResolvers = {
         throw new Error('An error occurred while updating the user.')
       }
     },
-    deleteUser: async (
-      _: unknown,
-      { id }: { id: string },
-      context: GraphQLContext
-    ): Promise<{ message: string }> => {
-      try {
-        await context.prisma.user.delete({ where: { id } })
-        return { message: 'User deleted successfully' }
-      } catch (error) {
-        console.error('Error deleting user:', error)
-        throw new Error('An error occurred while deleting the user.')
-      }
-    },
+    // deleteUser: async (
+    //   _: unknown,
+    //   { id }: { id: string },
+    //   context: GraphQLContext
+    // ): Promise<string> => {
+    //   try {
+    //     // await context.prisma.user.delete({ where: { id } })
+    //     // return { message: 'User deleted successfully' }
+    //     await context.prisma.$transaction(async (prisma) => {
+
+    //       // Delete the orders associated with the user
+    //       await prisma.order.deleteMany({
+    //         where: { studentId: id },
+    //       });
+
+    //       // Delete the user
+    //       await prisma.user.delete({
+    //         where: { id },
+    //       });
+    //     });
+
+    //     return 'User and  their associated orders deleted successfully';
+    //   } catch (error) {
+    //     console.error('Error deleting user:', error)
+    //     throw new Error('An error occurred while deleting the user.')
+    //   }
+    // },
   },
   User: {
     orders: (parent: User, _: unknown, context: GraphQLContext) => {
