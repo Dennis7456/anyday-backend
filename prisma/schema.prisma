@@ -1,22 +1,11 @@
-<<<<<<< HEAD
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
   binaryTargets   = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
-=======
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
->>>>>>> e7c503d741dbc5a1650205c775bff16f09a89214
 }
 
 datasource db {
   provider  = "postgres"
-<<<<<<< HEAD
   url       = env("POSTGRES_PRISMA_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
@@ -45,36 +34,11 @@ model User {
   qaReviews          Review[]       @relation("QAReviews")
   writtenReviews     Review[]       @relation("WriterReviews")
   chats              Chat[]         @relation("ChatParticipants")
-=======
-  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
-  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
-}
-
-model User {
-  id          Int      @id @default(autoincrement())
-  firstName   String
-  lastName    String
-  userName    String
-  email       String   @unique
-  phoneNumber String
-  dateOfBirth String
-  password    String
-  role        Role
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  orders         Order[]      @relation("UserOrders")
-  qaReviews      Review[]     @relation("QAReviews")
-  writtenReviews Review[]     @relation("WriterReviews")
-  assignments    Assignment[] @relation("WriterAssignments")
->>>>>>> e7c503d741dbc5a1650205c775bff16f09a89214
 
   @@map("users")
 }
 
 model Order {
-<<<<<<< HEAD
   id            String       @id @default(uuid())
   studentId     String
   instructions  String
@@ -93,31 +57,10 @@ model Order {
   student       User         @relation("UserOrders", fields: [studentId], references: [id])
   payment       Payment?
   reviews       Review[]
-=======
-  id            Int         @id @default(autoincrement())
-  studentId     Int
-  instructions  String
-  paperType     String
-  numberOfPages Int
-  dueDate       String
-  status        OrderStatus
-  totalAmount   Float
-  depositAmount Float
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  //Relations
-  student       User         @relation("UserOrders", fields: [studentId], references: [id])
-  payment       Payment?
-  reviews       Review[]
-  assignments   Assignment[]
-  uploadedFiles File[]       @relation("OrderFiles")
->>>>>>> e7c503d741dbc5a1650205c775bff16f09a89214
 
   @@map("orders")
 }
 
-<<<<<<< HEAD
 model Review {
   id        String       @id @default(uuid())
   orderId   String
@@ -158,36 +101,10 @@ model Payment {
   paymentMethod  String?
   paymentDueDate DateTime?
   order          Order         @relation(fields: [orderId], references: [id])
-=======
-
-model File {
-  id         Int      @id @default(autoincrement())
-  url        String
-  name       String
-  size       String
-  type       String
-  orderId    Int
-  order      Order    @relation("OrderFiles", fields: [orderId], references: [id])
-
-  @@map("files")
-}
-
-model Payment {
-  id            Int           @id @default(autoincrement())
-  orderId       Int           @unique
-  amount        Float
-  paymentStatus PaymentStatus
-  transactionId String?
-  paymentDate   DateTime      @default(now())
-
-  // Relations
-  order Order @relation(fields: [orderId], references: [id])
->>>>>>> e7c503d741dbc5a1650205c775bff16f09a89214
 
   @@map("payments")
 }
 
-<<<<<<< HEAD
 model File {
   id       String  @id @default(uuid())
   url      String
@@ -243,38 +160,6 @@ model Notification {
 enum ReviewStatus {
   PENDING
   VERIFIED
-=======
-model Review {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  qaId      Int
-  writerId  Int
-  comments  String?
-  rating    Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  order  Order @relation(fields: [orderId], references: [id])
-  qa     User  @relation("QAReviews", fields: [qaId], references: [id])
-  writer User  @relation("WriterReviews", fields: [writerId], references: [id])
-
-  @@map("reviews")
-}
-
-model Assignment {
-  id          Int       @id @default(autoincrement())
-  orderId     Int
-  writerId    Int
-  assignedAt  DateTime  @default(now())
-  completedAt DateTime?
-
-  // Relations
-  order  Order @relation(fields: [orderId], references: [id])
-  writer User  @relation("WriterAssignments", fields: [writerId], references: [id])
-
-  @@map("assignments")
->>>>>>> e7c503d741dbc5a1650205c775bff16f09a89214
 }
 
 enum Role {
@@ -284,7 +169,6 @@ enum Role {
   QA
 }
 
-<<<<<<< HEAD
 enum AssignmentStatus {
   PENDING
   IN_PROGRESS
@@ -317,8 +201,6 @@ enum PaperType {
   OTHER
 }
 
-=======
->>>>>>> e7c503d741dbc5a1650205c775bff16f09a89214
 enum OrderStatus {
   PENDING
   IN_PROGRESS
