@@ -58,7 +58,7 @@ function registerUploadFilesRoute(app) {
                     '.doc',
                     '.docx',
                     '.ppt',
-                    '.xls',
+                    '.xlsx',
                 ];
                 const uploadedFiles = [];
                 let fileUploaded = false;
