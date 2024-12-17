@@ -194,7 +194,9 @@ export const userResolvers = {
         const { email, paperType, numberOfPages, dueDate } = JSON.parse(
           cachedData as string
         )
+
         const parsedDueDate = new Date(dueDate)
+
         if (isNaN(parsedDueDate.getTime())) {
           throw new Error('Invalid date format for dueDate')
         }
