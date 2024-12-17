@@ -1,10 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the `Link` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `User` table. If the table is not empty, all the data it contains will be lost.
-
-*/
 -- CreateEnum
 CREATE TYPE "ReviewStatus" AS ENUM ('PENDING', 'VERIFIED');
 
@@ -18,22 +11,13 @@ CREATE TYPE "AssignmentStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED');
 CREATE TYPE "NotificationType" AS ENUM ('MESSAGE', 'ORDER_UPDATE', 'REVIEW', 'PAYMENT');
 
 -- CreateEnum
-CREATE TYPE "PaperType" AS ENUM ('ESSAY', 'RESEARCH_PAPER', 'THESIS', 'DISSERTATION');
+CREATE TYPE "PaperType" AS ENUM ('ESSAY', 'ADMISSION_ESSAY', 'ANNOTATED_BIBLIOGRAPHY', 'ARGUMENTATIVE_ESSAY', 'ARTICLE_REVIEW', 'BOOK_MOVIE_REVIEW', 'BUSINESS_PLAN', 'PRESENTATION_SPEECH', 'RESEARCH_PROPOSAL', 'CASE_STUDY', 'CRITICAL_THINKING', 'COURSE_WORK', 'TERM_PAPER', 'THESIS_DISSERTATION_CHAPTER', 'CREATIVE_WRITING', 'OTHER');
 
 -- CreateEnum
 CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'REVIEWED');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED');
-
--- DropForeignKey
-ALTER TABLE "Link" DROP CONSTRAINT "Link_userId_fkey";
-
--- DropTable
-DROP TABLE "Link";
-
--- DropTable
-DROP TABLE "User";
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -43,7 +27,6 @@ CREATE TABLE "users" (
     "userName" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phoneNumber" TEXT NOT NULL,
-    "dateOfBirth" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "Role" NOT NULL,
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
@@ -52,6 +35,7 @@ CREATE TABLE "users" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "emailNotifications" BOOLEAN NOT NULL DEFAULT true,
     "inAppNotifications" BOOLEAN NOT NULL DEFAULT true,
+    "dateOfBirth" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -61,7 +45,7 @@ CREATE TABLE "orders" (
     "id" TEXT NOT NULL,
     "studentId" TEXT NOT NULL,
     "instructions" TEXT NOT NULL,
-    "paperType" TEXT NOT NULL,
+    "paperType" "PaperType" NOT NULL,
     "numberOfPages" INTEGER NOT NULL,
     "dueDate" TIMESTAMP(3) NOT NULL,
     "status" "OrderStatus" NOT NULL,
@@ -166,7 +150,9 @@ CREATE TABLE "notifications" (
 -- CreateTable
 CREATE TABLE "_ChatParticipants" (
     "A" TEXT NOT NULL,
-    "B" TEXT NOT NULL
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_ChatParticipants_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateIndex
@@ -174,9 +160,6 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "payments_orderId_key" ON "payments"("orderId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "_ChatParticipants_AB_unique" ON "_ChatParticipants"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_ChatParticipants_B_index" ON "_ChatParticipants"("B");
@@ -212,10 +195,10 @@ ALTER TABLE "chats" ADD CONSTRAINT "chats_orderId_fkey" FOREIGN KEY ("orderId") 
 ALTER TABLE "messages" ADD CONSTRAINT "messages_chatId_fkey" FOREIGN KEY ("chatId") REFERENCES "chats"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "messages" ADD CONSTRAINT "messages_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "messages" ADD CONSTRAINT "messages_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "messages" ADD CONSTRAINT "messages_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "messages" ADD CONSTRAINT "messages_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
