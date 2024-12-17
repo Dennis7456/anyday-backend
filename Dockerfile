@@ -27,10 +27,10 @@ FROM node:20-alpine AS production
 
 WORKDIR /usr/src/app
 
-# Add glibc compatibility for Prisma query engine
-RUN apk add --no-cache libc6-compat
+# Add glibc compatibility for Prisma query engine and OpenSSL
+RUN apk add --no-cache libc6-compat openssl
 
-# Copy built application and dependencies
+# Copy built application and dependencies from build stage
 COPY --from=build /usr/src/app /usr/src/app
 
 # Ensure non-root user permissions
