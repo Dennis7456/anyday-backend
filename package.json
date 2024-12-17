@@ -1,5 +1,5 @@
 {
-  "name": "anyday-backend-backup",
+  "name": "anyday-backend",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
