@@ -41,8 +41,11 @@ const allowedOrigins = [
     'https://anydayessay.com',
     'https://anyday-essay-client.web.app',
     'http://localhost:3000',
+    'http://127.0.0.1:3000',
     'http://localhost:8080',
+    'http://127.0.0.1:8080',
     'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app/graphql',
+    'https://anyday-backend-gcloudrun-969666510139.us-central1.run.app',
 ].filter(Boolean);
 exports.app.register(cors_1.default, {
     origin: (origin, cb) => {
