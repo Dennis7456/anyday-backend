@@ -1,16 +1,27 @@
 {
   "compilerOptions": {
-    "target": "ES2019", // Specify ECMAScript target version
-    "module": "commonjs", // Specify module code generation
-    "rootDir": "./app", // Root directory of your TypeScript files
-    "outDir": "./dist", // Directory where the compiled JavaScript files will go
-    "strict": true, // Enable all strict type-checking options
-    "lib":["ES2021", "DOM"],
-    "esModuleInterop": true, // Enables interoperability between CommonJS and ES Modules
-    "skipLibCheck": true, // Skip type checking of declaration files
-    "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file
-    "typeRoots": ["./node_modules/@types", "./types"] // Specify type declaration files locations
+    "outDir": "./dist",          // Output folder for compiled JavaScript files
+    "rootDir": "./",           // Specifies where TypeScript should look for source files
+    "target": "ES6",              // JavaScript version to compile to (ES6 or higher recommended)
+    "module": "commonjs",         // Module system to use (commonjs for Node.js)
+    "moduleResolution": "node",   // Resolve modules using Node.js conventions
+    "esModuleInterop": true,      // Enables interoperability with ES6 modules
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,               // Enable all strict type-checking options
+    "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "types": ["node", "fastify", "jest"]
   },
-  "include": ["app/**/*.ts", "types/**/*.d.ts", "schema.graphql"], // Include all TypeScript files in the app and types directories
-  "exclude": ["node_modules", "dist"] // Exclude node_modules and dist directories
+  "include": [
+    "src/**/*.ts",
+    "__tests__/**/*.ts",
+    "src/types/*"
+  ],             
+  "exclude": [
+    "node_modules",
+    "__tests__",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    ]     // Exclude the node_modules folder
 }

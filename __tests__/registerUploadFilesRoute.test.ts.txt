@@ -1,0 +1,276 @@
+process.env.REDISHOST = 'localhost';
+process.env.REDISPORT = '6379';
+process.env.REDISPASSWORD = 'mock-password';
+process.env.BUCKET_URL = 'mock-bucket';
+process.env.MAILJET_API_KEY = 'mock-api-key';
+process.env.MAILJET_SECRET_KEY = 'mock-secret-key';
+
+import supertest from 'supertest';
+import { app } from '../src/index';
+import fs, { readFileSync } from 'fs';
+import { Storage } from '@google-cloud/storage';
+
+jest.mock('fs', () => ({
+    promises: {
+        mkdir: jest.fn().mockResolvedValue(undefined),
+        writeFile: jest.fn().mockResolvedValue(undefined),
+    },
+    readFileSync: jest.fn(() => `
+    scalar DateTime
+
+    enum OrderStatus {
+        PENDING
+        IN_PROGRESS
+        COMPLETED
+        CANCELLED
+    }
+        enum PaperType {
+  ESSAY
+  RESEARCH_PAPER
+  THESIS
+  DISSERTATION
+}
+
+    type Query {
+        info: String
+        test: String
+        orders: [Order!]!
+        order(id: ID!): Order!
+        users: [User!]!
+        user: User!
+        loggedInUser: User!
+    }
+    type Mutation {
+    updateOrder(orderId: ID!, data: OrderUpdateInput!): Order!
+    createOrder(input: CreateOrderInput!): Order!
+    createStudent(input: CreateStudentInput!): User!
+    login(email: String!, password: String!): AuthPayload
+    registerAndCreateOrder(
+    input: RegisterAndCreateOrderInput!
+  ): RegisterOrderResponse!
+  verifyEmail(token: String!): VerifyEmailResponse
+  completeRegistration(token: String!): CompleteRegistrationResponse!
+        }
+
+        input RegisterAndCreateOrderInput {
+  email: String
+  paperType: String
+  numberOfPages: Int
+  dueDate: DateTime
+}
+  type RegisterOrderResponse {
+  success: Boolean!
+  message: String!
+  verificationToken: String
+}
+
+    type User {
+        id: ID!
+        name: String!
+        email: String!
+    }
+
+    type Order {
+        id: ID!
+        studentId: String!
+        instructions: String!
+        paperType: String!
+        numberOfPages: Int!
+        dueDate: DateTime!
+        status: OrderStatus!
+        totalAmount: Float!
+        depositAmount: Float!
+        createdAt: DateTime!
+        submittedAt: DateTime
+        updatedAt: DateTime!
+
+        student: User!
+        payment: Payment
+        reviews: [Review!]!
+        assignments: [Assignment!]!
+        uploadedFiles: [File!]!
+        chats: [Chat!]!
+    }
+
+    type Payment {
+        id: ID!
+        amount: Float!
+        status: String!
+    }
+
+    type Review {
+        id: ID!
+        content: String!
+        rating: Int!
+    }
+
+    type Assignment {
+        id: ID!
+        title: String!
+    }
+
+    type File {
+        id: ID!
+        url: String!
+        name: String!
+    }
+
+    type Chat {
+        id: ID!
+        message: String!
+        timestamp: DateTime!
+    }
+
+type AuthPayload {
+  token: String
+  user: User
+}
+
+type VerifyEmailResponse {
+  valid: Boolean!
+  message: String!
+  redirectUrl: String!
+  token: String!
+}
+  type CompleteRegistrationResponse {
+  valid: Boolean!
+  message: String!
+}
+  input CreateStudentInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phoneNumber: String!
+  dateOfBirth: DateTime!
+  password: String!
+}
+  input CreateOrderInput {
+  studentId: String!
+  instructions: String!
+  paperType: PaperType!
+  numberOfPages: Int!
+  dueDate: DateTime!
+  depositAmount: Float!
+}
+
+input OrderUpdateInput {
+  instructions: String
+  paperType: String
+  numberOfPages: Int
+  dueDate: String
+  totalAmount: Float
+  depositAmount: Float
+  status: OrderStatus
+}
+
+    `),
+    existsSync: jest.fn().mockReturnValue(true),
+}));
+
+jest.mock('@google-cloud/storage', () => {
+    const mockFile = {
+        createWriteStream: jest.fn().mockReturnValue({
+            write: jest.fn(),
+            end: jest.fn(),
+        }),
+    };
+    const mockBucket = {
+        file: jest.fn().mockReturnValue(mockFile),
+    };
+    return {
+        Storage: jest.fn().mockImplementation(() => ({
+            bucket: jest.fn(() => mockBucket),
+        })),
+    };
+});
+
+jest.mock('../src/services/redisClient', () => ({
+    redisClient: {
+        connect: jest.fn().mockResolvedValue(undefined),
+        get: jest.fn().mockResolvedValue(null),
+        setEx: jest.fn().mockResolvedValue(undefined),
+        del: jest.fn().mockResolvedValue(undefined),
+    },
+}));
+
+jest.mock('node-mailjet', () => ({
+    apiConnect: jest.fn(() => ({
+        post: jest.fn().mockReturnValue({
+            request: jest.fn().mockResolvedValue({
+                body: { success: true }
+            })
+        })
+    }))
+}))
+
+describe('Upload Files Route', () => {
+    const storageMock = new Storage();
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should upload a file to local storage in development mode', async () => {
+        process.env.NODE_ENV = 'development';
+
+        const response = await supertest(app.server)
+            .post('/api/upload/files')
+            .attach('file', Buffer.from('test content'), 'test.txt') // Valid file
+            .expect(200);
+
+        expect(response.body.message).toBe('Files Uploaded Successfully');
+        expect(fs.promises.mkdir).toHaveBeenCalledWith('./uploads');
+    });
+
+    it('should upload a file to Google Cloud Storage in production mode', async () => {
+        process.env.NODE_ENV = 'production';
+
+        const response = await supertest(app.server)
+            .post('/api/upload/files')
+            .attach('file', Buffer.from('test content'), 'test.txt') // Valid file
+            .expect(200);
+
+        expect(response.body.message).toBe('Files Uploaded Successfully');
+        expect(storageMock.bucket).toHaveBeenCalledWith('mock-bucket');
+    });
+
+    it('should throw an error when BUCKET_URL is not set in production', async () => {
+        delete process.env.BUCKET_URL;
+        process.env.NODE_ENV = 'production';
+
+        const response = await supertest(app.server)
+            .post('/api/upload/files')
+            .attach('file', Buffer.from('test content'), 'test.txt')
+            .expect(500);
+
+        expect(response.body.message).toBe('BUCKET_URL is not defined in the environment variables');
+    });
+
+    it('should parse a CSV file correctly in development mode', async () => {
+        process.env.NODE_ENV = 'development';
+
+        const response = await supertest(app.server)
+            .post('/api/upload/files')
+            .attach('file', Buffer.from('id,name\n1,Test'), 'test.csv')
+            .expect(200);
+
+        expect(response.body.message).toBe('Files Uploaded Successfully');
+    });
+
+    it('should return an error when no file is uploaded', async () => {
+        const response = await supertest(app.server)
+            .post('/api/upload/files')
+            .expect(400);
+
+        expect(response.body.message).toBe('No file uploaded');
+    });
+
+    it('should return an error when an unsupported file type is uploaded', async () => {
+        const response = await supertest(app.server)
+            .post('/api/upload/files')
+            .attach('file', Buffer.from('test content'), 'test.exe') // Invalid file type
+            .expect(400);
+
+        expect(response.body.message).toBe('Unsupported file type');
+    });
+});

@@ -1,19 +1,17 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+  // previewFeatures = ["driverAdapters"]
+  binaryTargets   = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
   provider  = "postgres"
-  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
-  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
+<<<<<<< HEAD
   id          String      @id @default(uuid())
   firstName   String
   lastName    String
@@ -31,34 +29,77 @@ model User {
   qaReviews      Review[]     @relation("QAReviews")
   writtenReviews Review[]     @relation("WriterReviews")
   assignments    Assignment[] @relation("WriterAssignments")
+=======
+  id                 String         @id @default(uuid())
+  firstName          String
+  lastName           String
+  userName           String
+  email              String         @unique
+  phoneNumber        String
+  password           String
+  role               Role
+  isVerified         Boolean        @default(false)
+  profilePicture     String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  emailNotifications Boolean        @default(true)
+  inAppNotifications Boolean        @default(true)
+  dateOfBirth        DateTime
+  assignments        Assignment[]   @relation("WriterAssignments")
+  receivedMessages   Message[]      @relation("MessageRecipient")
+  sentMessages       Message[]      @relation("MessageSender")
+  notifications      Notification[] @relation("UserNotifications")
+  orders             Order[]        @relation("UserOrders")
+  qaReviews          Review[]       @relation("QAReviews")
+  writtenReviews     Review[]       @relation("WriterReviews")
+  chats              Chat[]         @relation("ChatParticipants")
+>>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
   @@map("users")
 }
 
 model Order {
+<<<<<<< HEAD
   id            String         @id @default(uuid())
+=======
+  id            String       @id @default(uuid())
+>>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
   studentId     String
   instructions  String
-  paperType     String
+  paperType     PaperType
   numberOfPages Int
-  dueDate       String
+  dueDate       DateTime
   status        OrderStatus
   totalAmount   Float
   depositAmount Float
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  //Relations
+  createdAt     DateTime     @default(now())
+  submittedAt   DateTime?
+  updatedAt     DateTime     @updatedAt
+  assignments   Assignment[]
+  chats         Chat[]       @relation("OrderChats")
+  uploadedFiles File[]       @relation("OrderFiles")
   student       User         @relation("UserOrders", fields: [studentId], references: [id])
   payment       Payment?
   reviews       Review[]
-  assignments   Assignment[]
-  uploadedFiles File[]       @relation("OrderFiles")
 
   @@map("orders")
 }
 
+model Review {
+  id        String       @id @default(uuid())
+  orderId   String
+  qaId      String
+  writerId  String
+  comments  String?
+  rating    Int
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  order     Order        @relation(fields: [orderId], references: [id])
+  qa        User         @relation("QAReviews", fields: [qaId], references: [id])
+  writer    User         @relation("WriterReviews", fields: [writerId], references: [id])
 
+<<<<<<< HEAD
 model File {
   id         String      @id @default(uuid())
   url        String
@@ -67,11 +108,26 @@ model File {
   type       String
   orderId    String
   order      Order    @relation("OrderFiles", fields: [orderId], references: [id])
+=======
+  @@map("reviews")
+}
+>>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
-  @@map("files")
+model Assignment {
+  id          String           @id @default(uuid())
+  orderId     String
+  writerId    String
+  assignedAt  DateTime         @default(now())
+  completedAt DateTime?
+  status      AssignmentStatus @default(PENDING)
+  order       Order            @relation(fields: [orderId], references: [id])
+  writer      User             @relation("WriterAssignments", fields: [writerId], references: [id])
+
+  @@map("assignments")
 }
 
 model Payment {
+<<<<<<< HEAD
   id            String           @id @default(uuid())
   orderId       String           @unique
   amount        Float
@@ -81,10 +137,22 @@ model Payment {
 
   // Relations
   order Order @relation(fields: [orderId], references: [id])
+=======
+  id             String        @id @default(uuid())
+  orderId        String        @unique
+  amount         Float
+  paymentStatus  PaymentStatus
+  transactionId  String?
+  paymentDate    DateTime      @default(now())
+  paymentMethod  String?
+  paymentDueDate DateTime?
+  order          Order         @relation(fields: [orderId], references: [id])
+>>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
   @@map("payments")
 }
 
+<<<<<<< HEAD
 model Review {
   id        String      @id @default(uuid())
   orderId   String
@@ -94,27 +162,72 @@ model Review {
   rating    Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+=======
+model File {
+  id       String  @id @default(uuid())
+  url      String
+  name     String
+  size     String
+  mimeType String?
+  orderId  String
+  order    Order   @relation("OrderFiles", fields: [orderId], references: [id])
 
-  // Relations
-  order  Order @relation(fields: [orderId], references: [id])
-  qa     User  @relation("QAReviews", fields: [qaId], references: [id])
-  writer User  @relation("WriterReviews", fields: [writerId], references: [id])
+  @@map("files")
+}
+>>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
-  @@map("reviews")
+model Chat {
+  id           String    @id @default(uuid())
+  orderId      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  order        Order     @relation("OrderChats", fields: [orderId], references: [id])
+  messages     Message[]
+  participants User[]    @relation("ChatParticipants")
+
+  @@map("chats")
 }
 
+<<<<<<< HEAD
 model Assignment {
   id          String       @id @default(uuid())
   orderId     String
   writerId    String
   assignedAt  DateTime  @default(now())
   completedAt DateTime?
+=======
+model Message {
+  id          String   @id @default(uuid())
+  chatId      String
+  senderId    String
+  recipientId String?
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  chat        Chat     @relation(fields: [chatId], references: [id])
+  recipient   User?    @relation("MessageRecipient", fields: [recipientId], references: [id])
+  sender      User     @relation("MessageSender", fields: [senderId], references: [id])
+>>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
-  // Relations
-  order  Order @relation(fields: [orderId], references: [id])
-  writer User  @relation("WriterAssignments", fields: [writerId], references: [id])
+  @@map("messages")
+}
 
-  @@map("assignments")
+model Notification {
+  id          String           @id @default(uuid())
+  recipientId String
+  type        NotificationType
+  message     String
+  link        String
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  recipient   User             @relation("UserNotifications", fields: [recipientId], references: [id])
+
+  @@map("notifications")
+}
+
+enum ReviewStatus {
+  PENDING
+  VERIFIED
 }
 
 enum Role {
@@ -122,6 +235,38 @@ enum Role {
   STUDENT
   WRITER
   QA
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum NotificationType {
+  MESSAGE
+  ORDER_UPDATE
+  REVIEW
+  PAYMENT
+}
+
+enum PaperType {
+  ESSAY
+  ADMISSION_ESSAY
+  ANNOTATED_BIBLIOGRAPHY
+  ARGUMENTATIVE_ESSAY
+  ARTICLE_REVIEW
+  BOOK_MOVIE_REVIEW
+  BUSINESS_PLAN
+  PRESENTATION_SPEECH
+  RESEARCH_PROPOSAL
+  CASE_STUDY
+  CRITICAL_THINKING
+  COURSE_WORK
+  TERM_PAPER
+  THESIS_DISSERTATION_CHAPTER
+  CREATIVE_WRITING
+  OTHER
 }
 
 enum OrderStatus {

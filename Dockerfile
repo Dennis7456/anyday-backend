@@ -1,42 +1,45 @@
 # Step 1: Build Stage
-FROM node:16 AS build
+FROM node:20 AS build
 
-# Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json (or yarn.lock) to the container
+# Copy dependencies
 COPY package*.json ./
-
-# Copy the prisma schema to the container
 COPY prisma ./prisma
 
-# Install all dependencies (including dev dependencies)
+# Install all dependencies
 RUN npm install
 
-# Copy the rest of the application code to the container
+# Copy application code
 COPY . .
 
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Remove dev dependencies after generating Prisma client
+# Build the application
+RUN npm run build
+
+# Remove dev dependencies
 RUN npm prune --production
 
-# Build the application if there's a build step (e.g., for TypeScript or Webpack)
-RUN npm run build
-# RUN npx tsc
-
 # Step 2: Production Stage
-FROM node:16-alpine AS production
+FROM node:20-alpine AS production
 
-# Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy built application and node_modules from the build stage
+# Add glibc compatibility for Prisma query engine and OpenSSL
+RUN apk add --no-cache libc6-compat openssl
+
+# Copy built application and dependencies from build stage
 COPY --from=build /usr/src/app /usr/src/app
 
-# Expose the port the app runs on
+# Ensure non-root user permissions
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /usr/src/app
+
+USER appuser
+
 EXPOSE 8080
 
-# Run database migrations and start the application in one command
-ENTRYPOINT ["sh", "-c", "npx prisma migrate deploy && npm start"]
+# Run migrations and start the application
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
