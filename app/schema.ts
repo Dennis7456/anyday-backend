@@ -15,13 +15,14 @@ import fs from 'fs';
 import { sendVerificationEmail } from './sendVerificationEmail';
 import { sendOrderSuccessEmail } from './sendOrderSuccessEmail';
 import { RegisterOrderInput, RegisterOrderResponse, CreateStudentInput, CreateOrderInput, AttachFilesInput } from './types'
+import { OrderStatus } from '.prisma/client';
 
 const REGISTER_EXPIRATION = 3600; // 1 hour expiration
 const baseUrl = process.env.BASE_URL || "https://anyday-frontend.web.app"
 
 const users: User[] = [
   {
-    id: 1,
+    id: "1",
     firstName: 'John',
     lastName: 'Doe',
     userName: 'johndoe23',
@@ -34,7 +35,7 @@ const users: User[] = [
     updatedAt: new Date(),
   },
   {
-    id: 2,
+    id: "2",
     firstName: 'Jane',
     lastName: 'Doe',
     userName: 'janedoe23',
@@ -53,7 +54,7 @@ const resolvers = {
     users: async (_: unknown, __: {}, context: GraphQLContext) => {
       return context.prisma.user.findMany();
     },
-    user: async (_: unknown, { id }: { id: number }, context: GraphQLContext) => {
+    user: async (_: unknown, { id }: { id: string }, context: GraphQLContext) => {
       return context.prisma.user.findUnique({
         where: { id },
       });
@@ -69,13 +70,13 @@ const resolvers = {
         throw new Error('Authentication required');
       }
       return context.prisma.order.findMany({
-        where: {studentId: context.currentUser.id},
+        where: { studentId: context.currentUser.id },
         include: {
           uploadedFiles: true
         }
       });
     },
-    order: async (_: unknown, { id }: { id: number }, context: GraphQLContext) => {
+    order: async (_: unknown, { id }: { id: string }, context: GraphQLContext) => {
       // if (!context.currentUser) {
       //   throw new Error('Authentication required');
       // }
@@ -85,6 +86,23 @@ const resolvers = {
     },
   },
   Mutation: {
+    updateOrderStatus: async (_: unknown, { orderId, status }: { orderId: string; status: OrderStatus }, context: GraphQLContext) => {
+      try {
+        //Update order status in the database
+        const updatedOrder = await context.prisma.order.update({
+          where: { id: String(orderId) },
+          data: { status },
+        });
+
+        return updatedOrder;
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error('Error updating order status:', error.message)
+        } else {
+          console.error('Unexpected error', error)
+        }
+      }
+    },
     registerAndCreateOrder: async (
       _: unknown,
       // { email, paperType, pages, dueDate
@@ -367,6 +385,14 @@ const resolvers = {
     ) => {
       const { studentId, instructions, paperType, numberOfPages, dueDate, uploadedFiles } = input;
 
+      const studentExists = await context.prisma.user.findUnique({
+        where: { id: studentId.toString() },
+      });
+
+      if (!studentExists) {
+        throw new Error("Student not found");
+      }
+
       if (!instructions || !paperType || !numberOfPages || !dueDate) {
         console.error("Validation error: Missing required fields.");
         return {
@@ -471,7 +497,7 @@ const resolvers = {
         // Create the order
         const order = await context.prisma.order.create({
           data: {
-            studentId,
+            studentId: studentId.toString(),
             instructions: updatedInstructions,
             paperType,
             numberOfPages,
@@ -495,7 +521,7 @@ const resolvers = {
 
         // If the order creation is successful, send the email
         const student = await context.prisma.user.findUnique({
-          where: { id: studentId },
+          where: { id: studentId.toString() },
         });
 
         if (student && student.email) {
@@ -545,7 +571,7 @@ const resolvers = {
     createPayment: async (
       parent: Order, _: unknown,
       { orderId, amount, paymentStatus, transactionId }: {
-        orderId: number;
+        orderId: string;
         amount: number;
         paymentStatus: PaymentStatus;
         transactionId: string;
@@ -568,9 +594,9 @@ const resolvers = {
     createReview: async (
       _: unknown,
       { orderId, qaId, writerId, comments, rating }: {
-        orderId: number;
-        qaId: number;
-        writerId: number;
+        orderId: string;
+        qaId: string;
+        writerId: string;
         comments: string;
         rating: number;
       },
@@ -592,7 +618,7 @@ const resolvers = {
     },
     createAssignment: async (
       _: unknown,
-      { orderId, writerId }: { orderId: number; writerId: number },
+      { orderId, writerId }: { orderId: string; writerId: string },
       context: GraphQLContext
     ) => {
       if (!context.currentUser) {

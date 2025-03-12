@@ -1,4 +1,5 @@
 import { GraphQLContext } from '../context/context'
+import { pubsub, EVENTS } from './subscriptionController'
 
 interface Chat {
   id: string
@@ -151,6 +152,9 @@ export const chatResolvers = {
         include: { messages: true, participants: true },
       })
 
+      // Publish chat added event for real-time updates
+      pubsub.publish(EVENTS.CHAT_ADDED, { chatAdded: chat })
+
       return {
         success: true,
         message: 'Chat created successfully.',
@@ -197,14 +201,22 @@ export const chatResolvers = {
           senderId: context.currentUser.id,
           recipientId: input.recipientId,
           content: input.content,
+          isRead: false,
         },
-        include: { chat: true },
+        include: {
+          chat: true,
+          sender: true,
+          recipient: true,
+        },
       })
+
+      // Publish message added event for real-time updates
+      pubsub.publish(EVENTS.MESSAGE_ADDED, { messageAdded: message })
 
       return {
         success: true,
         message: 'Message sent successfully.',
-        data: message,
+        messageData: message,
       }
     },
   },

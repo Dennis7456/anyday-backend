@@ -201,132 +201,107 @@ input CreateUserInput {
   role: Role!
 }
 
-# Inputs
-input UpdateUserInput {
+input CreateStudentInput {
   firstName: String!
   lastName: String!
   userName: String!
   email: String!
   phoneNumber: String!
   dateOfBirth: String!
-  role: Role!
-}
-
-input CreateOrderInput {
-  studentId: ID!
-  instructions: String!
-  paperType: PaperType!
-  numberOfPages: Int!
-  dueDate: DateTime!
-  depositAmount: Float!
-  uploadedFiles: [FileInput!]
-}
-
-input OrderUpdateInput {
-  instructions: String
-  paperType: PaperType
-  numberOfPages: Int
-  dueDate: String
-  totalAmount: Float
-  depositAmount: Float
-  status: OrderStatus
-  uploadedFiles: [FileUpdateInput!]
-}
-
-input RegisterAndCreateOrderInput {
-  email: String
-  paperType: String
-  numberOfPages: Int
-  dueDate: DateTime
-}
-
-input CreateStudentInput {
-  firstName: String!
-  lastName: String!
-  email: String!
-  phoneNumber: String!
-  dateOfBirth: DateTime!
   password: String!
 }
 
-# Input and Payload Types
+input UpdateUserInput {
+  firstName: String
+  lastName: String
+  userName: String
+  email: String
+  phoneNumber: String
+  dateOfBirth: String
+  password: String
+  profilePicture: String
+  emailNotifications: Boolean
+  inAppNotifications: Boolean
+}
+
+input CreateOrderInput {
+  paperType: PaperType!
+  instructions: String!
+  numberOfPages: Int!
+  dueDate: DateTime!
+  depositAmount: Float!
+  totalAmount: Float!
+}
+
+input OrderUpdateInput {
+  paperType: PaperType
+  instructions: String
+  numberOfPages: Int
+  dueDate: DateTime
+  status: OrderStatus
+  totalAmount: Float
+  depositAmount: Float
+}
+
+input RegisterAndCreateOrderInput {
+  firstName: String!
+  lastName: String!
+  userName: String!
+  email: String!
+  phoneNumber: String!
+  dateOfBirth: String!
+  password: String!
+  paperType: PaperType!
+  instructions: String!
+  numberOfPages: Int!
+  dueDate: DateTime!
+  depositAmount: Float!
+  totalAmount: Float!
+}
+
 input UploadFilesInput {
   orderId: String!
-  files: [FileInput!]!
+  files: [Upload!]!
 }
 
-input FileInput {
-  id: ID!
-  url: String!
-  name: String!
-  size: String!
-  mimeType: String
-}
-
-input FileUpdateInput {
-  id: ID
-  url: String
-  name: String
-  size: String
-  mimeType: String
-}
-
-type UploadFilesPayload {
-  success: Boolean!
-  message: String!
-  files: [File!]!
-}
-
-type RegisterOrderResponse {
-  success: Boolean!
-  message: String!
-  verificationToken: String
+# Responses
+type AuthPayload {
+  token: String
+  user: User
 }
 
 type VerifyEmailResponse {
-  valid: Boolean!
+  success: Boolean!
   message: String!
-  redirectUrl: String!
-  token: String!
 }
 
 type CompleteRegistrationResponse {
-  valid: Boolean!
+  success: Boolean!
   message: String!
-}
-
-# Payloads
-type AuthPayload {
   token: String
   user: User
 }
 
 type CreateOrderResponse {
   success: Boolean!
-  message: String
+  message: String!
   order: Order
 }
 
-enum PaperType {
-  ESSAY
-  ADMISSION_ESSAY
-  ANNOTATED_BIBLIOGRAPHY
-  ARGUMENTATIVE_ESSAY
-  ARTICLE_REVIEW
-  BOOK_MOVIE_REVIEW
-  BUSINESS_PLAN
-  PRESENTATION_SPEECH
-  RESEARCH_PROPOSAL
-  CASE_STUDY
-  CRITICAL_THINKING
-  COURSE_WORK
-  TERM_PAPER
-  THESIS_DISSERTATION_CHAPTER
-  CREATIVE_WRITING
-  OTHER
+type RegisterOrderResponse {
+  success: Boolean!
+  message: String!
+  token: String
+  user: User
+  order: Order
 }
 
-# Queries
+type UploadFilesPayload {
+  success: Boolean!
+  message: String!
+  files: [File!]
+}
+
 type Query {
   info: String!
   test: String!
@@ -352,6 +327,35 @@ type Query {
   chatsByUser(userId: String!): [Chat!]!
 }
 
+# Mutations
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  login(input: LoginInput): AuthPayload
+  createOrder(input: CreateOrderInput!): CreateOrderResponse!
+  updateOrder(orderId: ID!, data: OrderUpdateInput!): Order!
+  registerAndCreateOrder(
+    input: RegisterAndCreateOrderInput!
+  ): RegisterOrderResponse!
+  verifyEmail(token: String!): VerifyEmailResponse
+  completeRegistration(token: String!): CompleteRegistrationResponse!
+  createStudent(input: CreateStudentInput!): User!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  deleteUser(id: ID!): String!
+  deleteOrder(id: ID!): Order!
+  # File Mutations
+  uploadFiles(input: UploadFilesInput!): UploadFilesPayload!
+  # Chat Mutations
+  createChat(input: CreateChatInput!): CreateChatResponse!
+  sendMessage(input: SendMessageInput!): SendMessageResponse!
+  markMessageAsRead(messageId: ID!): Message!
+}
+
+# Subscriptions
+type Subscription {
+  messageAdded(chatId: ID!): Message!
+  chatAdded(userId: ID!): Chat!
+}
+
 # Chat Input Types
 input CreateChatInput {
   orderId: String!
@@ -375,33 +379,4 @@ type SendMessageResponse {
   success: Boolean!
   message: String!
   messageData: Message
-}
-
-# Subscriptions
-type Subscription {
-  messageAdded(chatId: ID!): Message!
-  chatAdded(userId: ID!): Chat!
-}
-
-# Mutations
-type Mutation {
-  createUser(input: CreateUserInput!): User!
-  login(input: LoginInput): AuthPayload
-  createOrder(input: CreateOrderInput!): CreateOrderResponse!
-  updateOrder(orderId: ID!, data: OrderUpdateInput!): Order!
-  registerAndCreateOrder(
-    input: RegisterAndCreateOrderInput!
-  ): RegisterOrderResponse!
-  verifyEmail(token: String!): VerifyEmailResponse
-  completeRegistration(token: String!): CompleteRegistrationResponse!
-  createStudent(input: CreateStudentInput!): User!
-  updateUser(id: ID!, input: UpdateUserInput!): User!
-  deleteUser(id: ID!): String!
-  deleteOrder(id: ID!): Order!
-  # File Mutations
-  uploadFiles(input: UploadFilesInput!): UploadFilesPayload!
-  # Chat Mutations
-  createChat(input: CreateChatInput!): CreateChatResponse!
-  sendMessage(input: SendMessageInput!): SendMessageResponse!
-  markMessageAsRead(messageId: ID!): Message!
 }

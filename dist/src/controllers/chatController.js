@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.chatResolvers = void 0;
+const subscriptionController_1 = require("./subscriptionController");
 exports.chatResolvers = {
     Query: {
         chats: (_, __, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -103,6 +104,8 @@ exports.chatResolvers = {
                 },
                 include: { messages: true, participants: true },
             });
+            // Publish chat added event for real-time updates
+            subscriptionController_1.pubsub.publish(subscriptionController_1.EVENTS.CHAT_ADDED, { chatAdded: chat });
             return {
                 success: true,
                 message: 'Chat created successfully.',
@@ -130,13 +133,20 @@ exports.chatResolvers = {
                     senderId: context.currentUser.id,
                     recipientId: input.recipientId,
                     content: input.content,
+                    isRead: false,
                 },
-                include: { chat: true },
+                include: {
+                    chat: true,
+                    sender: true,
+                    recipient: true,
+                },
             });
+            // Publish message added event for real-time updates
+            subscriptionController_1.pubsub.publish(subscriptionController_1.EVENTS.MESSAGE_ADDED, { messageAdded: message });
             return {
                 success: true,
                 message: 'Message sent successfully.',
-                data: message,
+                messageData: message,
             };
         }),
     },

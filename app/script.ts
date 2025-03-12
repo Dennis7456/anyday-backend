@@ -17,7 +17,7 @@ async function app() {
   const allUsers = await prisma.user.findMany();
   const oneUser = await prisma.user.findUnique({
     where: {
-      id: 1,
+      id: "1",
     },
   });
   //console.log(allUsers);

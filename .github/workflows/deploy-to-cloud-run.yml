@@ -43,7 +43,11 @@ jobs:
             --image "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/anyday-essay-fastify-app:$GITHUB_SHA" \
             --region $REGION \
             --platform managed \
-            --allow-unauthenticated \
+            --region us-central1 \
+            --allow-unauthenticated
+             --service-account your-service-account@your-project-id.iam.gserviceaccount.com \
+            --no-traffic \
+            --logging=cloud-logging-only  # Explicitly set to CLOUD_LOGGING_ONLY
 
       - name: Verify deployment
         run: |

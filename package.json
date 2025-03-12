@@ -104,6 +104,7 @@
     "graphql-import-node": "^0.0.5",
     "graphql-request": "^7.1.2",
     "graphql-scalars": "^1.23.0",
+    "graphql-subscriptions": "^3.0.0",
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",

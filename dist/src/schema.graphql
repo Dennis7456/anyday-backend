@@ -346,8 +346,41 @@ type Query {
   # Notification Queries
   notificationsByOrder(orderId: String!): [Notification!]!
   # Chat Queries
+  chats: [Chat!]!
+  chat(id: ID!): Chat!
   chatsByOrder(orderId: String!): [Chat!]!
   chatsByUser(userId: String!): [Chat!]!
+}
+
+# Chat Input Types
+input CreateChatInput {
+  orderId: String!
+  participantIds: [String!]!
+}
+
+input SendMessageInput {
+  chatId: String!
+  content: String!
+  recipientId: String
+}
+
+# Chat Response Types
+type CreateChatResponse {
+  success: Boolean!
+  message: String!
+  chat: Chat
+}
+
+type SendMessageResponse {
+  success: Boolean!
+  message: String!
+  messageData: Message
+}
+
+# Subscriptions
+type Subscription {
+  messageAdded(chatId: ID!): Message!
+  chatAdded(userId: ID!): Chat!
 }
 
 # Mutations
@@ -367,4 +400,8 @@ type Mutation {
   deleteOrder(id: ID!): Order!
   # File Mutations
   uploadFiles(input: UploadFilesInput!): UploadFilesPayload!
+  # Chat Mutations
+  createChat(input: CreateChatInput!): CreateChatResponse!
+  sendMessage(input: SendMessageInput!): SendMessageResponse!
+  markMessageAsRead(messageId: ID!): Message!
 }
