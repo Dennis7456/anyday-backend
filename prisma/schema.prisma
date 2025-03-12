@@ -11,25 +11,6 @@ datasource db {
 }
 
 model User {
-<<<<<<< HEAD
-  id          String      @id @default(uuid())
-  firstName   String
-  lastName    String
-  userName    String
-  email       String   @unique
-  phoneNumber String
-  dateOfBirth String
-  password    String
-  role        Role
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  orders         Order[]      @relation("UserOrders")
-  qaReviews      Review[]     @relation("QAReviews")
-  writtenReviews Review[]     @relation("WriterReviews")
-  assignments    Assignment[] @relation("WriterAssignments")
-=======
   id                 String         @id @default(uuid())
   firstName          String
   lastName           String
@@ -53,17 +34,12 @@ model User {
   qaReviews          Review[]       @relation("QAReviews")
   writtenReviews     Review[]       @relation("WriterReviews")
   chats              Chat[]         @relation("ChatParticipants")
->>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
   @@map("users")
 }
 
 model Order {
-<<<<<<< HEAD
-  id            String         @id @default(uuid())
-=======
   id            String       @id @default(uuid())
->>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
   studentId     String
   instructions  String
   paperType     PaperType
@@ -99,19 +75,8 @@ model Review {
   qa        User         @relation("QAReviews", fields: [qaId], references: [id])
   writer    User         @relation("WriterReviews", fields: [writerId], references: [id])
 
-<<<<<<< HEAD
-model File {
-  id         String      @id @default(uuid())
-  url        String
-  name       String
-  size       String
-  type       String
-  orderId    String
-  order      Order    @relation("OrderFiles", fields: [orderId], references: [id])
-=======
   @@map("reviews")
 }
->>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
 model Assignment {
   id          String           @id @default(uuid())
@@ -127,17 +92,6 @@ model Assignment {
 }
 
 model Payment {
-<<<<<<< HEAD
-  id            String           @id @default(uuid())
-  orderId       String           @unique
-  amount        Float
-  paymentStatus PaymentStatus
-  transactionId String?
-  paymentDate   DateTime      @default(now())
-
-  // Relations
-  order Order @relation(fields: [orderId], references: [id])
-=======
   id             String        @id @default(uuid())
   orderId        String        @unique
   amount         Float
@@ -147,22 +101,10 @@ model Payment {
   paymentMethod  String?
   paymentDueDate DateTime?
   order          Order         @relation(fields: [orderId], references: [id])
->>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
   @@map("payments")
 }
 
-<<<<<<< HEAD
-model Review {
-  id        String      @id @default(uuid())
-  orderId   String
-  qaId      String
-  writerId  String
-  comments  String?
-  rating    Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-=======
 model File {
   id       String  @id @default(uuid())
   url      String
@@ -174,7 +116,6 @@ model File {
 
   @@map("files")
 }
->>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
 model Chat {
   id           String    @id @default(uuid())
@@ -188,14 +129,6 @@ model Chat {
   @@map("chats")
 }
 
-<<<<<<< HEAD
-model Assignment {
-  id          String       @id @default(uuid())
-  orderId     String
-  writerId    String
-  assignedAt  DateTime  @default(now())
-  completedAt DateTime?
-=======
 model Message {
   id          String   @id @default(uuid())
   chatId      String
@@ -207,7 +140,6 @@ model Message {
   chat        Chat     @relation(fields: [chatId], references: [id])
   recipient   User?    @relation("MessageRecipient", fields: [recipientId], references: [id])
   sender      User     @relation("MessageSender", fields: [senderId], references: [id])
->>>>>>> 3fea0d7e858df9d3f6133c23db4c1902201d1535
 
   @@map("messages")
 }
